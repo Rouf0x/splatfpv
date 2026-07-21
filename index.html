@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>FPV Splat Sim</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/load-screen.css">
+  <link rel="stylesheet" href="css/hud.css">
+  <link rel="stylesheet" href="css/settings.css">
+</head>
+<body>
+  <canvas id="glcanvas"></canvas>
+
+  <!-- Screen 1: Main menu -->
+  <div id="mainMenu" class="menu-screen">
+    <div class="load-card">
+      <span class="card-corner tl"></span><span class="card-corner tr"></span>
+      <span class="card-corner bl"></span><span class="card-corner br"></span>
+      <div class="load-header">
+        <div class="logo-mark">
+          <svg viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7">
+            <line x1="6.5" y1="6.5" x2="25.5" y2="25.5"/>
+            <line x1="25.5" y1="6.5" x2="6.5" y2="25.5"/>
+            <circle cx="6.5" cy="6.5" r="3.4"/>
+            <circle cx="25.5" cy="6.5" r="3.4"/>
+            <circle cx="6.5" cy="25.5" r="3.4"/>
+            <circle cx="25.5" cy="25.5" r="3.4"/>
+            <circle cx="16" cy="16" r="1.8" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        <div>
+          <h1>FPV Splat Sim</h1>
+          <p class="sub">Fly rate-mode acro through Gaussian splat scenes. Everything runs locally in your browser.</p>
+        </div>
+      </div>
+
+      <button id="menuPlayBtn" class="btn primary menu-play-btn">▶ Play</button>
+
+      <div class="menu-secondary">
+        <button id="menuSettingsBtn" class="menu-tile">
+          <span class="menu-tile-icon">⚙</span>
+          <span>Settings</span>
+        </button>
+        <button id="menuCalibrateBtn" class="menu-tile">
+          <span class="menu-tile-icon">🎮</span>
+          <span>Calibrate controller</span>
+        </button>
+      </div>
+
+      <p class="privacy-note">Files and URLs are processed entirely on-device — nothing is uploaded.</p>
+    </div>
+  </div>
+
+  <!-- Screen 2: Setup — pick/transform a scene, live preview behind the sidebar -->
+  <div id="setupScreen" class="setup-screen" hidden>
+    <div class="setup-sidebar">
+      <div class="setup-sidebar-header">
+        <button id="setupBackBtn" class="btn-icon" aria-label="Back to main menu">←</button>
+        <h1>Choose a scene</h1>
+      </div>
+      <div class="setup-sidebar-body">
+        <div id="dropZone" class="drop-zone">
+          <span class="drop-icon">⬆</span>
+          <span>Drop a splat file here, or <strong>browse</strong></span>
+          <span class="drop-formats">.ply · .sog · .meta.json · .compressed.ply</span>
+        </div>
+        <input type="file" id="fileInput" accept=".ply,.sog,.json,.compressed.ply,.meta.json,.lod-meta.json" hidden>
+        <div class="url-row">
+          <input type="text" id="urlInput" placeholder="Paste splat URL…">
+          <button id="loadUrlBtn" class="btn primary">Load</button>
+        </div>
+        <button id="demoBtn" class="btn subtle demo-link">Or try the demo scene →</button>
+        <div id="loadStatus" class="load-status"></div>
+
+        <div id="sceneSetupFields" class="field-disabled"><!-- populated by setup-screen.js --></div>
+      </div>
+      <div class="setup-sidebar-footer">
+        <button id="launchBtn" class="btn primary" disabled>Launch ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-game HUD -->
+  <div id="hud">
+    <span class="hf-corner tl"></span><span class="hf-corner tr"></span>
+    <span class="hf-corner bl"></span><span class="hf-corner br"></span>
+
+    <div id="crosshair"><div class="dot"></div></div>
+
+    <div class="osd-block osd-tl">
+      <div id="crashBanner" class="crash-banner" hidden>CRASH — press R to reset</div>
+    </div>
+
+    <div class="osd-block osd-tr">
+      <div><span id="alt">0.0</span><span class="u">m ALT</span></div>
+      <div><span id="spd">0.0</span><span class="u">m/s SPD</span></div>
+      <div><span id="vsi">0.0</span><span class="u">m/s VSI</span></div>
+    </div>
+
+    <div id="controlCluster" class="control-cluster">
+      <div id="stickPreview" class="stick-preview">
+        <div class="sp-gimbal" id="spLeft">
+          <div class="sp-tick t"></div><div class="sp-tick r"></div><div class="sp-tick b"></div><div class="sp-tick l"></div>
+          <div class="sp-crosshair"></div>
+          <div class="sp-dot" id="spLeftDot"></div>
+          <span class="sp-readout" id="spLeftReadout">T 0% · Y 0</span>
+          <span class="sp-label">THR / YAW</span>
+        </div>
+        <div class="sp-gimbal" id="spRight">
+          <div class="sp-tick t"></div><div class="sp-tick r"></div><div class="sp-tick b"></div><div class="sp-tick l"></div>
+          <div class="sp-crosshair"></div>
+          <div class="sp-dot" id="spRightDot"></div>
+          <span class="sp-readout" id="spRightReadout">R 0 · P 0</span>
+          <span class="sp-label">ROLL / PITCH</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="osd-block osd-br">
+      <div><span class="k">CAM</span> <span id="camLabel">FPV</span> <span class="k">[C]</span></div>
+      <div><span class="k">HOVER</span> <span id="hoverThr">—</span></div>
+    </div>
+
+    <div id="previewBanner">
+      Drag to orbit · Right-drag / two-finger pan · Scroll to zoom<br>
+      Position the camera, then press <strong>SPACE</strong> to launch
+    </div>
+
+    <div id="touchControls" hidden>
+      <div class="touch-stick" id="stickLeft"><div class="stick-knob"></div><span class="stick-label">THR / YAW</span></div>
+      <div class="touch-stick" id="stickRight"><div class="stick-knob"></div><span class="stick-label">PITCH / ROLL</span></div>
+    </div>
+  </div>
+
+  <button id="backToMenuBtn" class="corner-toggle corner-toggle-left hidden" title="Back to main menu" aria-label="Back to main menu">⌂</button>
+  <button id="settingsToggle" class="corner-toggle hidden" title="Settings" aria-label="Settings">⚙</button>
+
+  <!-- In-game settings (gear icon) — Flight / Camera / Controls -->
+  <div id="settingsPanel" class="settings-panel" hidden>
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button id="closeSettings" class="btn-icon" aria-label="Close">✕</button>
+    </div>
+    <nav class="settings-tabs" role="tablist"></nav>
+    <div class="settings-body"></div>
+  </div>
+
+  <!-- Main-menu Settings — dedicated screen, General / Controls -->
+  <div id="mainSettingsScreen" class="menu-screen" hidden>
+    <div class="load-card settings-card-wide">
+      <span class="card-corner tl"></span><span class="card-corner tr"></span>
+      <span class="card-corner bl"></span><span class="card-corner br"></span>
+      <div class="settings-header">
+        <h2>Settings</h2>
+        <button id="mainSettingsBackBtn" class="btn-icon" aria-label="Back">✕</button>
+      </div>
+      <nav class="settings-tabs" role="tablist"></nav>
+      <div class="settings-body"></div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "playcanvas": "https://cdn.jsdelivr.net/npm/playcanvas@2.21.0/+esm"
+    }
+  }
+  </script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

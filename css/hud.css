@@ -1,0 +1,262 @@
+#hud {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  display: none;
+}
+
+/* Viewfinder corner brackets — the goggle-frame motif */
+.hf-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--panel-border-strong);
+  opacity: 0.55;
+}
+.hf-corner.tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+.hf-corner.tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+.hf-corner.bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+.hf-corner.br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+.osd-block {
+  position: absolute;
+  font-size: 12px;
+  line-height: 1.7;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+.osd-tl { top: 18px; left: 22px; }
+.osd-tr { top: 18px; right: 22px; text-align: right; }
+.osd-br { bottom: 20px; right: 22px; text-align: right; }
+
+.k { color: var(--osd-dim); }
+
+/* Goggle-style telemetry readout: big value, small trailing unit/label —
+   modeled on the DJI Goggles 3 OSD (ALT / SPD / VSI stack, top-right). */
+.osd-tr > div, .osd-br > div { margin-bottom: 2px; }
+.osd-tr span:first-child {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--osd);
+}
+.osd-tr .u {
+  font-size: 9px;
+  color: var(--osd-dim);
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+}
+
+.crash-banner {
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: rgba(255, 77, 77, 0.16);
+  border: 1px solid var(--armed);
+  border-radius: 4px;
+  color: var(--armed);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+/* Control cluster — stick preview, bottom-center */
+.control-cluster {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.stick-preview {
+  display: flex;
+  gap: 10px;
+}
+
+.sp-gimbal {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  border: 1px solid var(--panel-border-strong);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.sp-tick { position: absolute; background: var(--panel-border-strong); }
+.sp-tick.t, .sp-tick.b { left: 50%; width: 1px; height: 5px; transform: translateX(-50%); }
+.sp-tick.t { top: 0; }
+.sp-tick.b { bottom: 0; }
+.sp-tick.l, .sp-tick.r { top: 50%; width: 5px; height: 1px; transform: translateY(-50%); }
+.sp-tick.l { left: 0; }
+.sp-tick.r { right: 0; }
+
+.sp-crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--osd-faint);
+  border-radius: 50%;
+}
+
+.sp-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(255, 145, 66, 0.75);
+  transform: translate(-50%, -50%);
+  transition: transform 0.03s linear;
+}
+
+.sp-readout {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--osd-dim);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.sp-label {
+  position: absolute;
+  bottom: -17px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8.5px;
+  color: var(--osd-faint);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* Center reticle — simple goggle crosshair, DJI-style: a thin cross with a
+   gap at the center dot, no clipped ball/ladder behind it. */
+#crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  opacity: 0.85;
+}
+
+#crosshair::before,
+#crosshair::after {
+  content: "";
+  position: absolute;
+  background: var(--osd);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+}
+
+#crosshair::before { left: 50%; top: 0; width: 1.5px; height: 8px; transform: translateX(-50%); }
+#crosshair::after { left: 50%; bottom: 0; width: 1.5px; height: 8px; transform: translateX(-50%); }
+#crosshair .dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 5px rgba(255, 145, 66, 0.8);
+  transform: translate(-50%, -50%);
+}
+#crosshair .dot::before, #crosshair .dot::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  background: var(--osd);
+}
+#crosshair .dot::before { left: -13px; width: 8px; height: 1.5px; transform: translateY(-50%); }
+#crosshair .dot::after { right: -13px; width: 8px; height: 1.5px; transform: translateY(-50%); }
+
+#previewBanner {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 12px;
+  color: var(--osd-dim);
+  background: rgba(8, 9, 11, 0.55);
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(6px);
+}
+
+#previewBanner strong { color: var(--accent); }
+
+#hud:not(.flying) #crosshair,
+#hud:not(.flying) .control-cluster,
+#hud:not(.flying) .osd-br,
+#hud:not(.flying) .osd-tr { display: none; }
+
+#hud.flying #previewBanner { display: none; }
+
+/* Touch controls */
+#touchControls {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.touch-stick {
+  position: absolute;
+  bottom: 40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1.5px solid var(--panel-border-strong);
+  touch-action: none;
+}
+
+#stickLeft { left: 24px; }
+#stickRight { right: 24px; }
+
+.stick-knob {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  border: 1.5px solid var(--accent);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.stick-label {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--osd-dim);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .osd-tr { right: 18px; }
+}
+
+/* On coarse-pointer devices the draggable touch sticks already occupy the
+   bottom corners — the read-only preview would collide/duplicate them. */
+@media (hover: none) and (pointer: coarse) {
+  .stick-preview { display: none; }
+}
+
+#hud.no-stick-preview .stick-preview { display: none; }

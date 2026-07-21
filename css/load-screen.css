@@ -1,0 +1,311 @@
+.menu-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 12%, rgba(255, 145, 66, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, #0e1014 0%, var(--bg) 70%);
+}
+
+/* Author CSS always beats the UA [hidden] rule regardless of specificity —
+   without this, `display: flex` above would keep the screen visible even
+   with the `hidden` attribute set. */
+.menu-screen[hidden] { display: none; }
+
+#mainSettingsScreen { z-index: 55; }
+
+.load-card {
+  position: relative;
+  width: min(540px, 92vw);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  border-radius: var(--radius);
+  padding: 30px 30px 24px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.card-corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--accent-border);
+  opacity: 0.7;
+  pointer-events: none;
+}
+.card-corner.tl { top: -1px; left: -1px; border-right: none; border-bottom: none; border-top-left-radius: var(--radius); }
+.card-corner.tr { top: -1px; right: -1px; border-left: none; border-bottom: none; border-top-right-radius: var(--radius); }
+.card-corner.bl { bottom: -1px; left: -1px; border-right: none; border-top: none; border-bottom-left-radius: var(--radius); }
+.card-corner.br { bottom: -1px; right: -1px; border-left: none; border-top: none; border-bottom-right-radius: var(--radius); }
+
+.load-header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.logo-mark {
+  color: var(--accent);
+  line-height: 1;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.load-card h1 {
+  font-family: var(--sans);
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+  color: var(--osd);
+}
+
+.load-card .sub {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--osd-dim);
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* Section heading, reused on the Setup screen (Scene transform / Ground) */
+.menu-section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--osd-dim);
+  margin: 22px 0 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.menu-play-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  margin-top: 4px;
+}
+
+.menu-secondary {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.menu-tile {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--osd-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.menu-tile:hover {
+  border-color: var(--panel-border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--osd);
+}
+
+.menu-tile-icon { font-size: 18px; color: var(--accent); }
+
+.privacy-note {
+  margin: 16px 0 0;
+  font-size: 10px;
+  color: var(--osd-dim);
+  opacity: 0.6;
+  text-align: center;
+}
+
+/* --- Setup screen: sidebar over the live preview canvas ------------------ */
+
+.setup-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none; /* clicks outside the sidebar reach the preview canvas */
+}
+
+.setup-sidebar {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: min(400px, 100vw);
+  background: var(--panel-bg);
+  border-right: 1px solid var(--panel-border);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.setup-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.setup-sidebar-header h1 {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--osd);
+}
+
+.setup-sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-border-strong) transparent;
+}
+.setup-sidebar-body::-webkit-scrollbar { width: 8px; }
+.setup-sidebar-body::-webkit-scrollbar-thumb { background: var(--panel-border-strong); border-radius: 4px; }
+
+.setup-sidebar-footer {
+  padding: 16px 18px 20px;
+  border-top: 1px solid var(--panel-border);
+}
+.setup-sidebar-footer .btn { width: 100%; padding: 14px; font-size: 12px; letter-spacing: 0.1em; }
+.setup-sidebar-footer .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.drop-zone {
+  border: 1.5px dashed var(--panel-border-strong);
+  border-radius: 8px;
+  padding: 30px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--osd-dim);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.drop-zone:hover { border-color: var(--panel-border-strong); background: rgba(255, 255, 255, 0.02); }
+
+.drop-zone.drag {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--osd);
+}
+
+.drop-zone strong { color: var(--accent); font-weight: 600; }
+
+.drop-icon { font-size: 20px; opacity: 0.55; }
+.drop-formats { font-size: 10px; opacity: 0.6; letter-spacing: 0.04em; }
+
+.url-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+#urlInput {
+  flex: 1;
+  background: #0c0d10;
+  border: 1px solid var(--panel-border);
+  color: var(--osd);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#urlInput:focus { border-color: var(--accent-border); }
+#urlInput::placeholder { color: var(--osd-faint); }
+
+/* Generic flex button row — used by the calibration wizard overlay */
+.demo-row {
+  display: flex;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.demo-link {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.load-status {
+  margin-top: 14px;
+  font-size: 11.5px;
+  color: var(--warn);
+  min-height: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.load-status.error { color: var(--armed); }
+
+.load-status.busy::before {
+  content: "";
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 201, 77, 0.25);
+  border-top-color: var(--warn);
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#calWizard {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 4, 6, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+#calWizard .demo-row { justify-content: flex-end; gap: 8px; }
+#calLive { font-size: 10.5px; line-height: 1.6; word-break: break-word; margin: 10px 0 16px; color: var(--osd-dim); }
+
+.cal-steps {
+  display: flex;
+  gap: 6px;
+  margin: -8px 0 18px;
+}
+.cal-steps .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--panel-border-strong);
+}
+.cal-steps .dot.done { background: var(--accent); }
+.cal-steps .dot.active { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+@media (max-width: 640px) {
+  .setup-sidebar { width: 100vw; border-right: none; }
+}

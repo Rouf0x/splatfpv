@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FPV Splat Drone</title>
+<style>
+  :root{
+    --osd: #eafff0;
+    --osd-dim: #9fd9b8;
+    --armed: #ff3b3b;
+    --safe: #3cff8a;
+    --warn: #ffb020;
+    --panel-bg: rgba(8,14,12,0.88);
+    --panel-line: rgba(120,255,180,0.25);
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden;
+    font-family: var(--mono); color: var(--osd); -webkit-user-select:none; user-select:none; }
+  #glcanvas { position:fixed; inset:0; width:100%; height:100%; display:block; outline:none; }
+
+  /* ---------- Load screen ---------- */
+  #loadScreen{
+    position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(ellipse at 50% 30%, #0d1a14 0%, #05080a 70%);
+  }
+  #loadCard{
+    width:min(560px, 92vw); border:1px solid var(--panel-line); background:var(--panel-bg);
+    border-radius:10px; padding:28px 28px 22px; box-shadow:0 20px 60px rgba(0,0,0,0.6);
+  }
+  #loadCard h1{ font-size:15px; letter-spacing:0.14em; text-transform:uppercase; margin:0 0 4px; color:var(--osd); }
+  #loadCard .sub{ font-size:12px; color:var(--osd-dim); margin:0 0 20px; line-height:1.5; }
+  #dropZone{
+    border:1px dashed var(--panel-line); border-radius:8px; padding:26px 16px; text-align:center;
+    font-size:12.5px; color:var(--osd-dim); cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  #dropZone.drag{ border-color: var(--safe); background: rgba(60,255,138,0.06); color:var(--osd); }
+  #dropZone b{ color:var(--osd); font-weight:600; }
+  .row{ display:flex; gap:8px; margin-top:14px; }
+  #urlInput{
+    flex:1; background:#050908; border:1px solid var(--panel-line); color:var(--osd);
+    font-family:var(--mono); font-size:12px; padding:9px 10px; border-radius:6px; outline:none;
+  }
+  #urlInput:focus{ border-color: var(--safe); }
+  button{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:0.04em; text-transform:uppercase;
+    background:#0e1a15; color:var(--osd); border:1px solid var(--panel-line); border-radius:6px;
+    padding:9px 14px; cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  button:hover{ border-color:var(--safe); background:#122019; }
+  button:active{ transform:translateY(1px); }
+  button.primary{ background:#123322; border-color:rgba(60,255,138,0.5); }
+  button.ghost{ background:transparent; }
+  #demoRow{ display:flex; justify-content:space-between; align-items:center; margin-top:16px; }
+  #demoRow .hint{ font-size:11px; color:var(--osd-dim); }
+  #loadStatus{ margin-top:14px; font-size:11.5px; color:var(--warn); min-height:14px; }
+  #fileInput{ display:none; }
+
+  /* ---------- HUD ---------- */
+  #hud{ position:fixed; inset:0; z-index:10; pointer-events:none; display:none; }
+  .osd-block{ position:absolute; font-size:12px; line-height:1.6; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
+  #osdTL{ top:16px; left:18px; }
+  #osdTR{ top:16px; right:18px; text-align:right; }
+  #osdBR{ bottom:18px; right:18px; text-align:right; }
+  #osdBanner{ top:16px; left:50%; transform:translateX(-50%); text-align:center; font-size:11.5px; color:var(--osd-dim); }
+  .k{ color:var(--osd-dim); }
+  #armState.armed{ color:var(--armed); }
+  #armState.disarmed{ color:var(--safe); }
+  #battWrap{ display:flex; align-items:center; gap:6px; justify-content:flex-end; }
+  #battBarOuter{ width:64px; height:8px; border:1px solid var(--panel-line); border-radius:2px; overflow:hidden; }
+  #battBarInner{ height:100%; background:var(--safe); width:100%; }
+
+  /* throttle bar bottom-left */
+  #throttleWrap{ position:absolute; left:18px; bottom:18px; display:flex; align-items:flex-end; gap:8px; }
+  #throttleTrack{ width:14px; height:120px; border:1px solid var(--panel-line); border-radius:3px; position:relative; overflow:hidden; background:rgba(0,0,0,0.25); }
+  #throttleFill{ position:absolute; left:0; right:0; bottom:0; background: var(--osd); opacity:0.85; height:0%; }
+  #throttleLabel{ font-size:11px; color:var(--osd-dim); }
+
+  /* crosshair */
+  #crosshair{ position:absolute; left:50%; top:50%; width:22px; height:22px; transform:translate(-50%,-50%); opacity:0.85; }
+  #crosshair::before, #crosshair::after{ content:""; position:absolute; background: var(--osd); box-shadow:0 0 4px rgba(0,0,0,0.9); }
+  #crosshair::before{ left:50%; top:0; width:1.5px; height:100%; transform:translateX(-50%); }
+  #crosshair::after{ top:50%; left:0; height:1.5px; width:100%; transform:translateY(-50%); }
+  #crosshair .dot{ position:absolute; left:50%; top:50%; width:3px; height:3px; border-radius:50%; background:var(--osd); transform:translate(-50%,-50%); }
+
+  /* artificial horizon */
+  #horizonWrap{ position:absolute; left:50%; top:50%; width:220px; height:220px; transform:translate(-50%,-50%); overflow:hidden; border-radius:50%; opacity:0.55; }
+  #horizonInner{ position:absolute; left:50%; top:50%; width:600px; height:600px; margin-left:-300px; margin-top:-300px; }
+  .ladderLine{ position:absolute; left:50%; width:70px; height:1px; background:var(--osd); transform:translateX(-50%); }
+  .ladderLine.wide{ width:120px; }
+  #horizonHorizon{ position:absolute; left:-300px; right:-300px; height:2px; background:var(--safe); top:300px; box-shadow:0 0 6px rgba(60,255,138,0.7); }
+
+  #modeBadge{ padding:2px 8px; border:1px solid var(--panel-line); border-radius:3px; font-size:10.5px; letter-spacing:0.08em; }
+
+  /* preview banner */
+  #previewBanner{
+    position:absolute; bottom:26px; left:50%; transform:translateX(-50%); text-align:center;
+    font-size:12px; color:var(--osd-dim); background:rgba(0,0,0,0.35); padding:8px 16px; border-radius:6px;
+    border:1px solid var(--panel-line);
+  }
+  #previewBanner b{ color:var(--osd); }
+  #hud:not(.flying) #crosshair,
+  #hud:not(.flying) #horizonWrap,
+  #hud:not(.flying) #throttleWrap,
+  #hud:not(.flying) #osdBR,
+  #hud:not(.flying) #osdTR{ display:none; }
+  #hud.flying #previewBanner{ display:none; }
+
+  /* settings */
+  #settingsToggle{
+    position:fixed; top:16px; right:18px; z-index:30; pointer-events:auto;
+    width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:rgba(8,14,12,0.7); border:1px solid var(--panel-line); font-size:14px; cursor:pointer;
+  }
+  #settingsToggle.hiddenBtn{ display:none; }
+  #settingsPanel{
+    position:fixed; top:56px; right:18px; z-index:30; width:300px; max-height:78vh; overflow-y:auto;
+    background:var(--panel-bg); border:1px solid var(--panel-line); border-radius:10px; padding:14px 16px 18px;
+    display:none; pointer-events:auto; font-size:11.5px;
+  }
+  #settingsPanel h2{ font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--osd-dim); margin:16px 0 8px; border-top:1px solid var(--panel-line); padding-top:12px; }
+  #settingsPanel h2:first-child{ margin-top:0; border-top:none; padding-top:0; }
+  .field{ margin-bottom:9px; }
+  .field label{ display:flex; justify-content:space-between; color:var(--osd-dim); margin-bottom:3px; }
+  .field label span.val{ color:var(--osd); }
+  input[type=range]{ width:100%; accent-color: var(--safe); }
+  .field.checkboxRow{ display:flex; align-items:center; justify-content:space-between; }
+  .keyList{ font-size:11px; color:var(--osd-dim); line-height:1.7; }
+  .keyList b{ color:var(--osd); }
+  #closeSettings{ width:100%; margin-top:14px; }
+
+  #gpStatus{ font-size:10.5px; color:var(--osd-dim); }
+  #gpStatus.on{ color: var(--safe); }
+
+  @media (max-width: 640px){
+    #settingsPanel{ width: 84vw; }
+    #horizonWrap{ width:160px; height:160px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="glcanvas"></canvas>
+
+<!-- ============ LOAD SCREEN ============ -->
+<div id="loadScreen">
+  <div id="loadCard">
+    <h1>FPV Splat Drone</h1>
+    <p class="sub">Load a 3D Gaussian Splat scene (.ply, .compressed.ply, .sog, .meta.json), then fly through it on a rate-mode acro drone. Nothing you load ever leaves your browser.</p>
+    <div id="dropZone">Drop a splat file here, or <b>click to browse</b></div>
+    <input type="file" id="fileInput" accept=".ply,.sog,.json,.compressed.ply,.meta.json,.lod-meta.json">
+    <div class="row">
+      <input type="text" id="urlInput" placeholder="…or paste a splat URL (.ply / .sog / .meta.json)">
+      <button id="loadUrlBtn">Load</button>
+    </div>
+    <div id="demoRow">
+      <span class="hint">No file handy?</span>
+      <button id="demoBtn" class="ghost">Load tiny demo splat</button>
+    </div>
+    <div id="loadStatus"></div>
+  </div>
+</div>
+
+<!-- ============ HUD ============ -->
+<div id="hud">
+  <div id="crosshair"><div class="dot"></div></div>
+  <div id="horizonWrap">
+    <div id="horizonInner">
+      <div id="horizonHorizon"></div>
+    </div>
+  </div>
+
+  <div class="osd-block" id="osdTL">
+    <div><span id="armState" class="disarmed">● DISARMED</span></div>
+    <div><span class="k">MODE</span> <span id="modeBadge">PREVIEW</span></div>
+    <div><span class="k">T+</span> <span id="timer">00:00</span></div>
+  </div>
+
+  <div class="osd-block" id="osdTR">
+    <div id="battWrap"><span class="k">BATT</span><div id="battBarOuter"><div id="battBarInner"></div></div><span id="battPct">100%</span></div>
+    <div><span class="k">ALT</span> <span id="alt">0.0</span> m</div>
+    <div><span class="k">SPD</span> <span id="spd">0.0</span> m/s</div>
+  </div>
+
+  <div class="osd-block" id="osdBanner"><span id="gpStatus">gamepad: not detected — keyboard active</span></div>
+
+  <div id="throttleWrap">
+    <div id="throttleTrack"><div id="throttleFill"></div></div>
+    <div id="throttleLabel">THR<br><span id="throttlePct">0%</span></div>
+  </div>
+
+  <div class="osd-block" id="osdBR">
+    <div><span class="k">CAM</span> <span id="camLabel">FPV</span> <span class="k">[C]</span></div>
+  </div>
+
+  <div id="previewBanner">
+    Drag to orbit · Right-drag/2-finger to pan · Scroll to zoom<br>
+    Fly camera to a good spot, then press <b>SPACE</b> to launch from there
+  </div>
+</div>
+
+<div id="settingsToggle" class="hiddenBtn">⚙</div>
+<div id="settingsPanel">
+  <h2>Flight response</h2>
+  <div class="field"><label>Max roll rate <span class="val" id="v_maxRoll"></span>°/s</label><input type="range" id="maxRoll" min="90" max="1200" step="10"></div>
+  <div class="field"><label>Max pitch rate <span class="val" id="v_maxPitch"></span>°/s</label><input type="range" id="maxPitch" min="90" max="1200" step="10"></div>
+  <div class="field"><label>Max yaw rate <span class="val" id="v_maxYaw"></span>°/s</label><input type="range" id="maxYaw" min="60" max="800" step="10"></div>
+  <div class="field"><label>Stick response <span class="val" id="v_response"></span></label><input type="range" id="response" min="4" max="30" step="1"></div>
+  <div class="field"><label>Thrust : weight <span class="val" id="v_twr"></span></label><input type="range" id="twr" min="1.1" max="4" step="0.1"></div>
+  <div class="field"><label>Air drag <span class="val" id="v_drag"></span></label><input type="range" id="drag" min="0.05" max="2" step="0.05"></div>
+  <div class="field"><label>World scale <span class="val" id="v_scale"></span>× </label><input type="range" id="worldScale" min="0.1" max="10" step="0.1"></div>
+  <div class="field checkboxRow"><label>Invert pitch</label><input type="checkbox" id="invPitch"></div>
+  <div class="field checkboxRow"><label>Invert roll</label><input type="checkbox" id="invRoll"></div>
+
+  <h2>Camera</h2>
+  <div class="field"><label>FPV tilt <span class="val" id="v_tilt"></span>°</label><input type="range" id="camTilt" min="0" max="45" step="1"></div>
+  <div class="field"><label>FPV FOV <span class="val" id="v_fov"></span>°</label><input type="range" id="camFov" min="70" max="150" step="1"></div>
+  <div class="field"><label>Chase distance <span class="val" id="v_chaseDist"></span> m</label><input type="range" id="chaseDist" min="0.6" max="8" step="0.1"></div>
+
+  <h2>World</h2>
+  <div class="field"><label>Ground height <span class="val" id="v_ground"></span> m</label><input type="range" id="groundHeight" min="-30" max="30" step="0.1"></div>
+  <div class="field"><label>Splat scale <span class="val" id="v_splatScale"></span>×</label><input type="range" id="splatScale" min="0.1" max="5" step="0.05"></div>
+  <div class="field"><label>Splat Y offset <span class="val" id="v_splatY"></span> m</label><input type="range" id="splatY" min="-20" max="20" step="0.1"></div>
+
+  <h2>Battery</h2>
+  <div class="field"><label>Pack duration <span class="val" id="v_battTime"></span> s</label><input type="range" id="battTime" min="30" max="400" step="10"></div>
+
+  <h2>Controls</h2>
+  <div class="keyList">
+    <b>W/S</b> throttle up/down &nbsp; <b>A/D</b> yaw<br>
+    <b>↑/↓</b> pitch &nbsp; <b>←/→</b> roll<br>
+    <b>SPACE</b> arm / disarm &nbsp; <b>R</b> reset<br>
+    <b>C</b> camera view &nbsp; <b>ESC</b> back to preview<br>
+    Gamepad: left stick = throttle/yaw, right stick = pitch/roll,
+    A = arm/disarm, B = reset
+  </div>
+
+  <button id="closeSettings">Close</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "playcanvas": "https://cdn.jsdelivr.net/npm/playcanvas/+esm"
+  }
+}
+</script>
+<script type="module">
+import {
+  Application, Asset, Entity, FILLMODE_FILL_WINDOW, RESOLUTION_AUTO,
+  Vec3, Quat, Color, StandardMaterial, BLEND_NORMAL
+} from 'playcanvas';
+
+/* =====================================================================
+   SETUP
+===================================================================== */
+const canvas = document.getElementById('glcanvas');
+const app = new Application(canvas, { graphicsDeviceOptions: { antialias: false } });
+app.setCanvasFillMode(FILLMODE_FILL_WINDOW);
+app.setCanvasResolution(RESOLUTION_AUTO);
+app.start();
+window.addEventListener('resize', () => app.resizeCanvas());
+
+const DEG2RAD = Math.PI / 180;
+const RAD2DEG = 180 / Math.PI;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+/* Tunable parameters, mirrored by the settings panel */
+const params = {
+  maxRoll: 500,        // deg/s
+  maxPitch: 500,        // deg/s
+  maxYaw: 240,        // deg/s
+  response: 14,         // how fast angular rate reaches target (1/s-ish)
+  twr: 2.2,          // thrust : weight ratio
+  drag: 0.5,          // linear drag coefficient
+  worldScale: 1,          // scene-units-per-metre multiplier
+  invertPitch: false,
+  invertRoll: false,
+  camTilt: 25,         // degrees, FPV camera tilt up
+  camFov: 100,        // degrees
+  chaseDist: 2.4,        // metres behind drone
+  groundHeight: 0,
+  splatScale: 1,
+  splatY: 0,
+  battTime: 130         // seconds of flight on a full pack
+};
+let groundHeightTouched = false;
+
+/* =====================================================================
+   PREVIEW CAMERA (orbit, used to explore the scene before flying)
+===================================================================== */
+const previewCamera = new Entity('PreviewCamera');
+previewCamera.setPosition(0, 1.6, 4);
+previewCamera.addComponent('camera', { fov: 65, clearColor: new Color(0.02, 0.03, 0.03) });
+app.root.addChild(previewCamera);
+
+/* =====================================================================
+   DRONE ENTITY + PROCEDURAL VISUAL (visible in chase cam)
+===================================================================== */
+const drone = new Entity('Drone');
+app.root.addChild(drone);
+
+function addBox(parent, name, sx, sy, sz, px, py, pz, r, g, b, opacity) {
+  const e = new Entity(name);
+  e.addComponent('render', { type: name.startsWith('prop') ? 'cylinder' : 'box' });
+  e.setLocalScale(sx, sy, sz);
+  e.setLocalPosition(px, py, pz);
+  const mat = new StandardMaterial();
+  mat.diffuse.set(r, g, b);
+  if (opacity !== undefined) { mat.opacity = opacity; mat.blendType = BLEND_NORMAL; }
+  mat.update();
+  e.render.material = mat;
+  parent.addChild(e);
+  return e;
+}
+addBox(drone, 'body', 0.16, 0.035, 0.16, 0, 0, 0, 0.85, 0.15, 0.15);
+addBox(drone, 'prop0', 0.16, 0.008, 0.16, 0.11, 0.01, 0.11, 0.05, 0.05, 0.05, 0.55);
+addBox(drone, 'prop1', 0.16, 0.008, 0.16, -0.11, 0.01, 0.11, 0.05, 0.05, 0.05, 0.55);
+addBox(drone, 'prop2', 0.16, 0.008, 0.16, 0.11, 0.01, -0.11, 0.05, 0.05, 0.05, 0.55);
+addBox(drone, 'prop3', 0.16, 0.008, 0.16, -0.11, 0.01, -0.11, 0.05, 0.05, 0.05, 0.55);
+
+/* FPV camera: rigidly mounted to the drone, tilted up slightly */
+const fpvCamera = new Entity('FPVCamera');
+fpvCamera.addComponent('camera', { fov: params.camFov, clearColor: new Color(0.02, 0.03, 0.03) });
+fpvCamera.setLocalPosition(0, 0.03, 0.02);
+drone.addChild(fpvCamera);
+
+/* Chase camera: free in world space, smoothly trails the drone */
+const chaseCamera = new Entity('ChaseCamera');
+chaseCamera.addComponent('camera', { fov: 68, clearColor: new Color(0.02, 0.03, 0.03) });
+app.root.addChild(chaseCamera);
+
+function setActiveCamera(which) {
+  previewCamera.camera.enabled = which === 'preview';
+  fpvCamera.camera.enabled = which === 'fpv';
+  chaseCamera.camera.enabled = which === 'chase';
+}
+setActiveCamera('preview');
+
+/* =====================================================================
+   CAMERA CONTROLS SCRIPT (official PlayCanvas orbit/pan/zoom) — preview only
+===================================================================== */
+const controlsAsset = new Asset('camera-controls', 'script', {
+  url: 'https://cdn.jsdelivr.net/npm/playcanvas/scripts/esm/camera-controls.mjs'
+});
+app.assets.add(controlsAsset);
+app.assets.load(controlsAsset);
+controlsAsset.ready(() => {
+  previewCamera.addComponent('script');
+  previewCamera.script.create('cameraControls');
+});
+
+/* =====================================================================
+   SPLAT LOADING
+===================================================================== */
+let splatEntity = null;
+
+function fileNameFromUrl(url) {
+  try {
+    const u = new URL(url, window.location.href);
+    const parts = u.pathname.split('/').filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : 'scene.ply';
+  } catch (e) {
+    return 'scene.ply';
+  }
+}
+
+function placeSplat(asset) {
+  if (splatEntity) { splatEntity.destroy(); splatEntity = null; }
+  splatEntity = new Entity('Splat');
+  splatEntity.addComponent('gsplat', { asset });
+  applySplatTransform();
+  app.root.addChild(splatEntity);
+  onSceneReady();
+}
+
+function applySplatTransform() {
+  if (!splatEntity) return;
+  splatEntity.setLocalPosition(0, params.splatY, 0);
+  splatEntity.setLocalScale(params.splatScale, params.splatScale, params.splatScale);
+}
+
+function loadSplatFromUrl(url, label) {
+  setLoadStatus('Loading ' + (label || url) + ' …');
+  const filename = fileNameFromUrl(url);
+  app.assets.loadFromUrlAndFilename(url, filename, 'gsplat', (err, asset) => {
+    if (err) {
+      setLoadStatus('Failed to load: ' + err);
+      return;
+    }
+    placeSplat(asset);
+  });
+}
+
+function loadSplatFromFile(file) {
+  setLoadStatus('Loading ' + file.name + ' …');
+  const blobUrl = URL.createObjectURL(file);
+  app.assets.loadFromUrlAndFilename(blobUrl, file.name, 'gsplat', (err, asset) => {
+    if (err) {
+      setLoadStatus('Failed to load: ' + err);
+      return;
+    }
+    placeSplat(asset);
+  });
+}
+
+function setLoadStatus(text) { document.getElementById('loadStatus').textContent = text; }
+
+function onSceneReady() {
+  document.getElementById('loadScreen').style.display = 'none';
+  document.getElementById('hud').style.display = 'block';
+  document.getElementById('settingsToggle').classList.remove('hiddenBtn');
+  mode = 'preview';
+  updateModeUI();
+}
+
+/* ---- load-screen wiring ---- */
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  if (fileInput.files && fileInput.files[0]) loadSplatFromFile(fileInput.files[0]);
+});
+['dragenter', 'dragover'].forEach(evt =>
+  dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('drag'); })
+);
+['dragleave', 'drop'].forEach(evt =>
+  dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('drag'); })
+);
+dropZone.addEventListener('drop', e => {
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) loadSplatFromFile(f);
+});
+document.getElementById('loadUrlBtn').addEventListener('click', () => {
+  const url = document.getElementById('urlInput').value.trim();
+  if (url) loadSplatFromUrl(url);
+});
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loadUrlBtn').click();
+});
+document.getElementById('demoBtn').addEventListener('click', () => {
+  loadSplatFromUrl('https://developer.playcanvas.com/assets/toy-cat.sog', 'demo splat');
+});
+
+/* auto-load via ?content=URL, mirroring supersplat-viewer's convention */
+const qp = new URLSearchParams(window.location.search);
+if (qp.get('content')) loadSplatFromUrl(qp.get('content'));
+
+/* =====================================================================
+   INPUT — keyboard
+===================================================================== */
+const keys = new Set();
+window.addEventListener('keydown', e => {
+  keys.add(e.code);
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+  if (e.code === 'Space') { e.preventDefault(); handleArmToggle(); }
+  if (e.code === 'KeyR') resetDrone();
+  if (e.code === 'KeyC') cycleCamera();
+  if (e.code === 'Escape') goToPreview();
+});
+window.addEventListener('keyup', e => keys.delete(e.code));
+
+/* Gamepad */
+let gamepadIndex = null;
+let prevGpButtons = {};
+window.addEventListener('gamepadconnected', e => { gamepadIndex = e.gamepad.index; });
+window.addEventListener('gamepaddisconnected', () => { gamepadIndex = null; });
+
+function readGamepad() {
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  let gp = null;
+  if (gamepadIndex !== null) gp = pads[gamepadIndex];
+  if (!gp) gp = Array.prototype.find.call(pads, p => p);
+  return gp || null;
+}
+const DEADZONE = 0.09;
+function dz(v) { return Math.abs(v) < DEADZONE ? 0 : v; }
+
+/* =====================================================================
+   FLIGHT STATE
+===================================================================== */
+let mode = 'preview';   // 'preview' | 'flying'
+let armed = false;
+let flightTime = 0;
+let battery = 1;        // 0..1
+let spawnPos = new Vec3(0, 1.5, 0);
+let spawnYawDeg = 0;
+
+const state = {
+  pos: new Vec3(0, 1.5, 0),
+  vel: new Vec3(),
+  quat: new Quat(),
+  angVel: new Vec3(),  // pitch(x), yaw(y), roll(z) rad/s
+  throttle: 0,
+  crashed: false
+};
+let camView = 'fpv'; // 'fpv' | 'chase'
+
+function updateModeUI() {
+  document.getElementById('modeBadge').textContent = mode === 'preview' ? 'PREVIEW' : 'FLYING';
+  document.getElementById('hud').classList.toggle('flying', mode === 'flying');
+  setActiveCamera(mode === 'preview' ? 'preview' : camView);
+}
+
+function cycleCamera() {
+  if (mode !== 'flying') return;
+  camView = camView === 'fpv' ? 'chase' : 'fpv';
+  document.getElementById('camLabel').textContent = camView.toUpperCase();
+  setActiveCamera(camView);
+}
+
+function handleArmToggle() {
+  if (mode === 'preview') {
+    // launch from the preview camera's current position/heading
+    const p = previewCamera.getPosition();
+    const yaw = previewCamera.getEulerAngles().y;
+    spawnPos.copy(p);
+    spawnYawDeg = yaw;
+    if (!groundHeightTouched) {
+      params.groundHeight = p.y - 1.5;
+      syncSettingsUI();
+    }
+    launchFrom(spawnPos, spawnYawDeg);
+    mode = 'flying';
+    armed = true;
+    updateModeUI();
+  } else {
+    armed = !armed;
+  }
+  updateArmUI();
+}
+
+function launchFrom(pos, yawDeg) {
+  state.pos.copy(pos);
+  state.vel.set(0, 0, 0);
+  state.angVel.set(0, 0, 0);
+  state.quat.setFromEulerAngles(0, yawDeg, 0);
+  state.throttle = 0;
+  state.crashed = false;
+  flightTime = 0;
+  battery = 1;
+  drone.enabled = true;
+}
+
+function resetDrone() {
+  launchFrom(spawnPos, spawnYawDeg);
+  armed = true;
+  if (mode !== 'flying') { mode = 'flying'; updateModeUI(); }
+  updateArmUI();
+}
+
+function goToPreview() {
+  if (mode === 'flying') {
+    previewCamera.setPosition(state.pos.x, state.pos.y + 0.4, state.pos.z + 2.2);
+    previewCamera.lookAt(state.pos.x, state.pos.y, state.pos.z);
+  }
+  mode = 'preview';
+  updateModeUI();
+}
+
+function updateArmUI() {
+  const el = document.getElementById('armState');
+  el.textContent = armed ? '● ARMED' : '● DISARMED';
+  el.className = armed ? 'armed' : 'disarmed';
+}
+updateArmUI();
+
+/* =====================================================================
+   PHYSICS
+===================================================================== */
+const GRAVITY = -9.81;
+const tmpUp = new Vec3();
+const tmpDelta = new Quat();
+
+function stepPhysics(dt) {
+  if (dt <= 0) return;
+  dt = Math.min(dt, 0.05);
+
+  // --- gather input ---
+  let throttleIn = null, yawIn = 0, pitchIn = 0, rollIn = 0;
+  const gp = readGamepad();
+  let gamepadActive = false;
+  if (gp) {
+    gamepadActive = true;
+    const lx = dz(gp.axes[0] || 0), ly = dz(gp.axes[1] || 0);
+    const rx = dz(gp.axes[2] || 0), ry = dz(gp.axes[3] || 0);
+    throttleIn = clamp((1 - ly) / 2, 0, 1);
+    yawIn = lx;
+    pitchIn = -ry;
+    rollIn = rx;
+    // edge-triggered buttons
+    const btn = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
+    if (btn(0) && !prevGpButtons[0]) handleArmToggle();
+    if (btn(1) && !prevGpButtons[1]) resetDrone();
+    for (let i = 0; i < gp.buttons.length; i++) prevGpButtons[i] = btn(i);
+  }
+  document.getElementById('gpStatus').textContent = gamepadActive
+    ? 'gamepad: active'
+    : 'gamepad: not detected — keyboard active';
+  document.getElementById('gpStatus').className = gamepadActive ? 'on' : '';
+
+  if (throttleIn === null) {
+    const rate = 0.9; // per second, keyboard "ratchet" throttle
+    if (keys.has('KeyW')) state.throttle = clamp(state.throttle + rate * dt, 0, 1);
+    if (keys.has('KeyS')) state.throttle = clamp(state.throttle - rate * dt, 0, 1);
+  } else {
+    state.throttle = throttleIn;
+  }
+  if (keys.has('KeyA')) yawIn -= 1;
+  if (keys.has('KeyD')) yawIn += 1;
+  if (keys.has('ArrowUp')) pitchIn -= 1;
+  if (keys.has('ArrowDown')) pitchIn += 1;
+  if (keys.has('ArrowLeft')) rollIn -= 1;
+  if (keys.has('ArrowRight')) rollIn += 1;
+
+  if (params.invertPitch) pitchIn = -pitchIn;
+  if (params.invertRoll) rollIn = -rollIn;
+
+  if (mode !== 'flying') return;
+
+  // --- battery ---
+  if (armed && !state.crashed) {
+    const drainRate = (0.35 + 0.9 * Math.pow(state.throttle, 1.5)) / Math.max(params.battTime, 1);
+    battery = clamp(battery - drainRate * dt, 0, 1);
+    flightTime += dt;
+    if (battery <= 0) armed = false;
+  }
+
+  // --- angular rates approach targets ---
+  const targetPitch = pitchIn * params.maxPitch * DEG2RAD;
+  const targetYaw = yawIn * params.maxYaw * DEG2RAD;
+  const targetRoll = rollIn * params.maxRoll * DEG2RAD;
+  const a = clamp(params.response * dt, 0, 1);
+  state.angVel.x = lerp(state.angVel.x, targetPitch, a);
+  state.angVel.y = lerp(state.angVel.y, targetYaw, a);
+  state.angVel.z = lerp(state.angVel.z, targetRoll, a);
+
+  // small-angle body-frame integration
+  tmpDelta.setFromEulerAngles(
+    state.angVel.x * dt * RAD2DEG,
+    state.angVel.y * dt * RAD2DEG,
+    state.angVel.z * dt * RAD2DEG
+  );
+  state.quat.mul(tmpDelta);
+  state.quat.normalize();
+
+  // --- thrust / gravity / drag ---
+  let thrustScale = 1;
+  if (battery < 0.2) thrustScale = 0.55 + battery * 2.25; // voltage sag near empty
+  const maxAccel = params.twr * -GRAVITY * thrustScale;
+  const thrustAccelMag = (armed && !state.crashed) ? state.throttle * maxAccel : 0;
+
+  state.quat.transformVector(Vec3.UP, tmpUp);
+  const accel = new Vec3(tmpUp.x, tmpUp.y, tmpUp.z).mulScalar(thrustAccelMag);
+  accel.y += GRAVITY;
+  const drag = state.vel.clone().mulScalar(-params.drag);
+  accel.add(drag);
+
+  state.vel.add(accel.mulScalar(dt));
+  state.pos.add(state.vel.clone().mulScalar(dt * params.worldScale));
+
+  // --- ground collision ---
+  if (state.pos.y <= params.groundHeight) {
+    state.pos.y = params.groundHeight;
+    if (!state.crashed && state.vel.y < -6) state.crashed = true;
+    state.vel.set(0, 0, 0);
+    state.angVel.set(0, 0, 0);
+    armed = false;
+  }
+
+  drone.setPosition(state.pos);
+  drone.setRotation(state.quat);
+}
+
+/* =====================================================================
+   CHASE CAMERA SMOOTHING
+===================================================================== */
+const chasePosSmoothed = new Vec3();
+let chaseInit = false;
+function updateChaseCamera(dt) {
+  if (!(mode === 'flying' && camView === 'chase')) return;
+  const back = drone.forward.clone().mulScalar(-1);
+  const target = drone.getPosition().clone()
+    .add(back.mulScalar(params.chaseDist))
+    .add(new Vec3(0, params.chaseDist * 0.35, 0));
+  if (!chaseInit) { chasePosSmoothed.copy(target); chaseInit = true; }
+  const t = 1 - Math.pow(0.001, dt);
+  chasePosSmoothed.lerp(chasePosSmoothed, target, t);
+  chaseCamera.setPosition(chasePosSmoothed);
+  chaseCamera.lookAt(drone.getPosition());
+}
+
+/* =====================================================================
+   HUD UPDATE
+===================================================================== */
+function fmtTime(s) {
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+}
+
+function updateHud() {
+  document.getElementById('timer').textContent = fmtTime(flightTime);
+  document.getElementById('alt').textContent = (state.pos.y - params.groundHeight).toFixed(1);
+  document.getElementById('spd').textContent = state.vel.length().toFixed(1);
+  document.getElementById('throttleFill').style.height = (state.throttle * 100).toFixed(0) + '%';
+  document.getElementById('throttlePct').textContent = (state.throttle * 100).toFixed(0) + '%';
+  document.getElementById('battPct').textContent = (battery * 100).toFixed(0) + '%';
+  const battEl = document.getElementById('battBarInner');
+  battEl.style.width = (battery * 100).toFixed(0) + '%';
+  battEl.style.background = battery < 0.2 ? 'var(--warn)' : (battery < 0.08 ? 'var(--armed)' : 'var(--safe)');
+
+  // artificial horizon
+  const euler = state.quat.getEulerAngles();
+  const pitchDeg = ((euler.x + 180) % 360) - 180;
+  const rollDeg = ((euler.z + 180) % 360) - 180;
+  const horizon = document.getElementById('horizonInner');
+  horizon.style.transform = `translate(-50%,-50%) rotate(${-rollDeg}deg) translateY(${pitchDeg * 3}px)`;
+}
+
+/* build pitch ladder once */
+(function buildLadder() {
+  const inner = document.getElementById('horizonInner');
+  for (let d = -60; d <= 60; d += 15) {
+    if (d === 0) continue;
+    const line = document.createElement('div');
+    line.className = 'ladderLine' + (d % 30 === 0 ? ' wide' : '');
+    line.style.top = (300 + d * 3) + 'px';
+    inner.appendChild(line);
+  }
+})();
+
+/* =====================================================================
+   SETTINGS PANEL WIRING
+===================================================================== */
+const settingsToggle = document.getElementById('settingsToggle');
+const settingsPanel = document.getElementById('settingsPanel');
+settingsToggle.addEventListener('click', () => {
+  settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
+});
+document.getElementById('closeSettings').addEventListener('click', () => settingsPanel.style.display = 'none');
+
+const bindings = [
+  ['maxRoll', 'v_maxRoll', v => v.toFixed(0)],
+  ['maxPitch', 'v_maxPitch', v => v.toFixed(0)],
+  ['maxYaw', 'v_maxYaw', v => v.toFixed(0)],
+  ['response', 'v_response', v => v.toFixed(0)],
+  ['twr', 'v_twr', v => v.toFixed(1)],
+  ['drag', 'v_drag', v => v.toFixed(2)],
+  ['worldScale', 'v_scale', v => v.toFixed(1)],
+  ['camTilt', 'v_tilt', v => v.toFixed(0)],
+  ['camFov', 'v_fov', v => v.toFixed(0)],
+  ['chaseDist', 'v_chaseDist', v => v.toFixed(1)],
+  ['groundHeight', 'v_ground', v => v.toFixed(1)],
+  ['splatScale', 'v_splatScale', v => v.toFixed(2)],
+  ['splatY', 'v_splatY', v => v.toFixed(1)],
+  ['battTime', 'v_battTime', v => v.toFixed(0)]
+];
+
+function syncSettingsUI() {
+  bindings.forEach(([id, valId, fmt]) => {
+    const input = document.getElementById(id);
+    input.value = params[id];
+    document.getElementById(valId).textContent = fmt(params[id]);
+  });
+  document.getElementById('invPitch').checked = params.invertPitch;
+  document.getElementById('invRoll').checked = params.invertRoll;
+}
+
+bindings.forEach(([id, valId, fmt]) => {
+  document.getElementById(id).addEventListener('input', e => {
+    params[id] = parseFloat(e.target.value);
+    document.getElementById(valId).textContent = fmt(params[id]);
+    if (id === 'groundHeight') groundHeightTouched = true;
+    if (id === 'splatScale' || id === 'splatY') applySplatTransform();
+    if (id === 'camTilt' || id === 'camFov') applyCameraSettings();
+  });
+});
+document.getElementById('invPitch').addEventListener('change', e => params.invertPitch = e.target.checked);
+document.getElementById('invRoll').addEventListener('change', e => params.invertRoll = e.target.checked);
+
+function applyCameraSettings() {
+  fpvCamera.setLocalEulerAngles(params.camTilt, 0, 0);
+  fpvCamera.camera.fov = params.camFov;
+}
+applyCameraSettings();
+syncSettingsUI();
+
+/* =====================================================================
+   MAIN LOOP
+===================================================================== */
+app.on('update', dt => {
+  stepPhysics(dt);
+  updateChaseCamera(dt);
+  if (mode === 'flying') updateHud();
+});
+</script>
+</body>
+</html>
