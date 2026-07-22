@@ -23,6 +23,15 @@ export function createSceneManager(app) {
     splatEntity.setLocalScale(world.splatScale, world.splatScale, world.splatScale);
   }
 
+  // Distance-based LOD only exists for formats that actually carry multiple
+  // levels (.compressed.ply / .lod-meta.json octrees) — a no-op otherwise.
+  // Disabling it clamps the selectable range to LOD 0 (the component's own
+  // finest level), rather than the full 0-99 range it defaults to.
+  function applyLod(world) {
+    if (!splatEntity || !world) return;
+    splatEntity.gsplat.lodRangeMax = world.lodDisabled ? 0 : 99;
+  }
+
   function placeSplat(asset, world) {
     if (splatEntity) {
       splatEntity.destroy();
@@ -30,7 +39,10 @@ export function createSceneManager(app) {
     }
     splatEntity = new Entity('Splat');
     splatEntity.addComponent('gsplat', { asset });
-    if (world) applySplatTransform(world);
+    if (world) {
+      applySplatTransform(world);
+      applyLod(world);
+    }
     app.root.addChild(splatEntity);
     onReadyCallback();
   }
@@ -80,6 +92,7 @@ export function createSceneManager(app) {
   return {
     get entity() { return splatEntity; },
     applySplatTransform,
+    applyLod,
     loadFromUrl,
     loadFromFile,
     unload,

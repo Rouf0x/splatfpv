@@ -48,6 +48,10 @@ export const DEFAULT_SETTINGS = {
     // Imported splats commonly come in facing backwards relative to the
     // FPV camera/flight axes — 180° on Z corrects that on load by default.
     splatRotZ: 180,
+    // Only affects formats that actually carry multiple detail levels
+    // (.compressed.ply / .lod-meta.json) — forces the finest level at any
+    // distance instead of coarsening farther splats for performance.
+    lodDisabled: false,
   },
   controls: {
     keyboardThrottleMode: 'hold',

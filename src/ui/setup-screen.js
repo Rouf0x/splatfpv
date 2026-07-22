@@ -21,6 +21,9 @@ const FIELDS_HTML = `
     ${slider('Ground height', -50, 50, 0.1, 'world', 'groundHeight')}
     ${checkbox('Auto-set ground on launch', 'world', 'autoGround')}
   </div>
+  <h3 class="menu-section-label">Performance</h3>
+  <p class="key-list" style="margin-top:0">Only matters for .compressed.ply/.lod-meta.json scenes with multiple detail levels baked in.</p>
+  ${checkbox('Disable distance LOD (always full quality)', 'world', 'lodDisabled')}
 `;
 
 export function initSetupScreen(sceneManager, settingsStore, callbacks) {
@@ -58,6 +61,10 @@ export function initSetupScreen(sceneManager, settingsStore, callbacks) {
   bindRange(fieldsEl, settingsStore, 'world', 'groundHeight', { fmt: (v) => v.toFixed(1) + ' m', onChange: () => saveDebounced() });
   bindCheckbox(fieldsEl, settingsStore, 'world', 'autoGround', { onChange: () => settingsStore.save() });
   updateGroundVisibility();
+
+  bindCheckbox(fieldsEl, settingsStore, 'world', 'lodDisabled', {
+    onChange: () => { sceneManager.applyLod(settingsStore.world); settingsStore.save(); },
+  });
 
   function setSceneLoadedUI(loaded) {
     fieldsEl.classList.toggle('field-disabled', !loaded);
