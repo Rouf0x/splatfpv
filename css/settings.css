@@ -1,8 +1,15 @@
-.corner-toggle {
+/* Grouped top-left with the back-to-menu house icon, so every persistent
+   HUD control lives in one place instead of being split across corners. */
+.hud-corner-left {
   position: fixed;
   top: 18px;
-  right: 20px;
+  left: 20px;
   z-index: 30;
+  display: flex;
+  gap: 8px;
+}
+
+.corner-toggle {
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -19,16 +26,15 @@
 }
 
 .corner-toggle:hover { border-color: var(--panel-border-strong); background: rgba(20, 22, 27, 0.9); color: var(--osd); }
-.corner-toggle-left { right: auto; left: 20px; }
-/* Sits just left of the settings gear, same circular style — used for the
-   mute toggle so it reads as one of the corner icons instead of a separate
-   wide control competing with the top-right telemetry readout. */
-.corner-toggle-offset { right: 62px; }
+
+#muteToggle .icon-muted { display: none; }
+#muteToggle.is-muted .icon-unmuted { display: none; }
+#muteToggle.is-muted .icon-muted { display: block; }
 
 .settings-panel {
   position: fixed;
   top: 60px;
-  right: 20px;
+  left: 20px;
   z-index: 30;
   width: min(360px, 92vw);
   max-height: calc(100vh - 84px);

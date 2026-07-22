@@ -136,9 +136,21 @@
     </div>
   </div>
 
-  <button id="backToMenuBtn" class="corner-toggle corner-toggle-left hidden" title="Back to main menu" aria-label="Back to main menu">⌂</button>
-  <button id="muteToggle" class="corner-toggle corner-toggle-offset hidden" title="Mute" aria-label="Mute">🔊</button>
-  <button id="settingsToggle" class="corner-toggle hidden" title="Settings" aria-label="Settings">⚙</button>
+  <div class="hud-corner-left">
+    <button id="backToMenuBtn" class="corner-toggle hidden" title="Back to main menu" aria-label="Back to main menu">⌂</button>
+    <button id="muteToggle" class="corner-toggle hidden" title="Mute" aria-label="Mute">
+      <svg class="icon-unmuted" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+        <path d="M16.5 8.5a5 5 0 0 1 0 7"/>
+        <path d="M19 6a8 8 0 0 1 0 12"/>
+      </svg>
+      <svg class="icon-muted" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+        <path d="M17 9l5 6M22 9l-5 6"/>
+      </svg>
+    </button>
+    <button id="settingsToggle" class="corner-toggle hidden" title="Settings" aria-label="Settings">⚙</button>
+  </div>
 
   <!-- In-game settings (gear icon) — Flight / Camera / Controls -->
   <div id="settingsPanel" class="settings-panel" hidden>

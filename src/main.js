@@ -42,7 +42,7 @@ const muteToggle = document.getElementById('muteToggle');
 function applyVolume() {
   const muted = settingsStore.controls.muted;
   audio.setMasterVolume(muted ? 0 : settingsStore.controls.audioVolume);
-  muteToggle.textContent = muted ? '🔇' : '🔊';
+  muteToggle.classList.toggle('is-muted', muted);
 }
 muteToggle.addEventListener('click', () => {
   settingsStore.controls.muted = !settingsStore.controls.muted;
