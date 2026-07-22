@@ -19,7 +19,6 @@
   background: rgba(14, 16, 20, 0.75);
   border: 1px solid var(--panel-border);
   color: var(--osd-dim);
-  font-size: 15px;
   cursor: pointer;
   backdrop-filter: blur(8px);
   transition: border-color 0.15s, background 0.15s, color 0.15s;
