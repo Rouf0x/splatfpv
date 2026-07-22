@@ -32,14 +32,15 @@ Gamepad: configurable axis mapping in Settings → Gamepad. Supports Mode 1/2/3 
 
 ## Settings
 
-Open via the **Settings** tile on the main menu, or the gear icon (top-right) once a scene is loaded:
+Open via the **Settings** tile on the main menu, or the gear icon (top-left, next to the mute button) once a scene is loaded:
 
 - **General**: export/import settings as JSON, reset to defaults
 - **Flight**: rates, expo, TWR, drag, hover assist
 - **Camera**: FPV tilt, FOV, fisheye lens effect, chase cam
-- **World**: ground collision (off by default), splat scale/position/rotation
 - **Controls**: keyboard inversions and sensitivity
 - **Gamepad**: enable/disable, sensitivity, deadzone, inversions; controller calibration wizard is on the main menu
+
+**World** settings (sky color, ground collision, splat scale/position/rotation) live on the scene-setup screen instead, with a live preview behind the sidebar as you adjust them.
 
 Every change saves to `localStorage` immediately — there's no separate "apply" step, and nothing is lost if you close the panel.
 

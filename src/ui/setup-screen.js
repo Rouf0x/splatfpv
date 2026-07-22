@@ -1,9 +1,11 @@
 import { DEMO_SPLAT_URL } from '../config/defaults.js';
-import { slider, checkbox, debounce, bindRange, bindCheckbox } from './field-controls.js';
+import { slider, checkbox, colorPicker, debounce, bindRange, bindCheckbox, bindColor } from './field-controls.js';
 
 // The scene/ground fields — rendered once into #sceneSetupFields, which
 // starts dimmed (nothing loaded yet) and lights up once a splat is loaded.
 const FIELDS_HTML = `
+  <h3 class="menu-section-label">Sky</h3>
+  ${colorPicker('Sky color', 'world', 'skyColor')}
   <h3 class="menu-section-label">Scene transform</h3>
   ${slider('Scale', 0.05, 8, 0.05, 'world', 'splatScale')}
   ${slider('Position X', -30, 30, 0.1, 'world', 'splatPosX')}
@@ -36,6 +38,9 @@ export function initSetupScreen(sceneManager, settingsStore, callbacks) {
   const saveDebounced = debounce(() => settingsStore.save(), 150);
   const groundFieldsEl = fieldsEl.querySelector('[data-role="groundFields"]');
 
+  bindColor(fieldsEl, settingsStore, 'world', 'skyColor', {
+    onChange: (hex) => { callbacks.onSkyChange?.(hex); saveDebounced(); },
+  });
   bindRange(fieldsEl, settingsStore, 'world', 'splatScale', { onChange: () => { applyTransform(); saveDebounced(); } });
   bindRange(fieldsEl, settingsStore, 'world', 'splatPosX', { onChange: () => { applyTransform(); saveDebounced(); } });
   bindRange(fieldsEl, settingsStore, 'world', 'splatPosY', { onChange: () => { applyTransform(); saveDebounced(); } });

@@ -118,6 +118,7 @@ const setupScreen = initSetupScreen(sceneManager, settingsStore, {
     mainMenu.show();
   },
   onLaunch: handleLaunchRequest,
+  onSkyChange(hex) { cameras.setSky(hex); },
 });
 
 function handleLaunchRequest() {

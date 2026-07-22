@@ -32,6 +32,10 @@ export const DEFAULT_SETTINGS = {
     fisheye: false,
   },
   world: {
+    // Shows through anywhere the splat itself doesn't cover — camera clear
+    // color, effectively, but framed as "sky" since that's what it reads as
+    // for an outdoor scan with open space above/around it.
+    skyColor: '#87ceeb',
     groundEnabled: false,
     groundHeight: 0,
     autoGround: true,

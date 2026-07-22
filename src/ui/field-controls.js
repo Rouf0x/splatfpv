@@ -21,6 +21,14 @@ export function checkbox(label, section, key) {
     </div>`;
 }
 
+export function colorPicker(label, section, key) {
+  return `
+    <div class="field color-row" data-section="${section}" data-key="${key}">
+      <label>${label}</label>
+      <input type="color">
+    </div>`;
+}
+
 export function debounce(fn, ms) {
   let t = null;
   return () => {
@@ -75,6 +83,26 @@ export function bindCheckbox(root, settingsStore, section, key, opts = {}) {
   input.addEventListener('change', () => {
     set(input.checked);
     opts.onChange?.(input.checked);
+  });
+
+  return resync;
+}
+
+export function bindColor(root, settingsStore, section, key, opts = {}) {
+  const field = fieldEl(root, section, key);
+  if (!field) return () => {};
+  const input = field.querySelector('input[type="color"]');
+  const get = opts.get || (() => settingsStore[section][key]);
+  const set = opts.set || ((v) => { settingsStore[section][key] = v; });
+
+  const resync = () => { input.value = get(); };
+  resync();
+
+  // 'input' fires continuously while dragging the picker — matches the
+  // live-preview feel of the other setup-screen sliders.
+  input.addEventListener('input', () => {
+    set(input.value);
+    opts.onChange?.(input.value);
   });
 
   return resync;

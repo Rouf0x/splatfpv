@@ -2,20 +2,23 @@ import { Entity, Vec3, Quat, Color } from './app.js';
 import { attachFisheye } from './postfx.js';
 import { createDroneModelLayer } from './drone-model.js';
 
+// Sky is just the cameras' clear color — whatever the splat itself doesn't
+// cover shows through as this, which for an outdoor scan with open space
+// reads as sky rather than a rendering void.
+const skyColor = new Color();
+function applySkyColor(cameras, hex) {
+  skyColor.fromString(hex);
+  cameras.forEach((cam) => { cam.camera.clearColor = skyColor.clone(); });
+}
+
 export function createCameras(app, settings) {
   const previewCamera = new Entity('PreviewCamera');
   previewCamera.setPosition(0, 1.6, 4);
-  previewCamera.addComponent('camera', {
-    fov: 65,
-    clearColor: new Color(0.02, 0.03, 0.03),
-  });
+  previewCamera.addComponent('camera', { fov: 65 });
   app.root.addChild(previewCamera);
 
   const fpvCamera = new Entity('FPVCamera');
-  fpvCamera.addComponent('camera', {
-    fov: settings.camera.camFov,
-    clearColor: new Color(0.02, 0.03, 0.03),
-  });
+  fpvCamera.addComponent('camera', { fov: settings.camera.camFov });
   fpvCamera.setLocalPosition(0, 0.035, 0.025);
 
   // Fisheye — only on the pilot's actual view, not the spectator chase cam,
@@ -24,11 +27,11 @@ export function createCameras(app, settings) {
   const fpvFx = attachFisheye(app, fpvCamera);
 
   const chaseCamera = new Entity('ChaseCamera');
-  chaseCamera.addComponent('camera', {
-    fov: 72,
-    clearColor: new Color(0.02, 0.03, 0.03),
-  });
+  chaseCamera.addComponent('camera', { fov: 72 });
   app.root.addChild(chaseCamera);
+
+  const allCameras = [previewCamera, fpvCamera, chaseCamera];
+  applySkyColor(allCameras, settings.world.skyColor);
 
   // The drone body model (see drone-model.js) renders on its own layer,
   // added here to preview/chase only — fpvCamera keeps its default layer
@@ -107,6 +110,10 @@ export function createCameras(app, settings) {
     chaseInit = false;
   }
 
+  function setSky(hex) {
+    applySkyColor(allCameras, hex);
+  }
+
   return {
     previewCamera,
     fpvCamera,
@@ -117,6 +124,7 @@ export function createCameras(app, settings) {
     applyFpvSettings,
     updateChase,
     resetChase,
+    setSky,
   };
 }
 
