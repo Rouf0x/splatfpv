@@ -53,6 +53,7 @@ export const DEFAULT_SETTINGS = {
     keyboardSensitivity: 1,
     showStickPreview: true,
     audioVolume: 0.7,
+    muted: false,
   },
   gamepad: {
     enabled: true,

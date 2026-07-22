@@ -20,30 +20,10 @@
 
 .corner-toggle:hover { border-color: var(--panel-border-strong); background: rgba(20, 22, 27, 0.9); color: var(--osd); }
 .corner-toggle-left { right: auto; left: 20px; }
-
-/* Quick-access volume control, sitting just left of the settings gear so
-   volume never needs a trip into the settings panel to reach. */
-.hud-volume {
-  position: fixed;
-  top: 18px;
-  right: 62px;
-  z-index: 30;
-  height: 34px;
-  padding: 0 12px 0 10px;
-  border-radius: 17px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(14, 16, 20, 0.75);
-  border: 1px solid var(--panel-border);
-  backdrop-filter: blur(8px);
-  pointer-events: auto;
-}
-.hud-volume-icon { font-size: 13px; line-height: 1; }
-.hud-volume input[type="range"] {
-  width: 72px;
-  accent-color: var(--accent);
-}
+/* Sits just left of the settings gear, same circular style — used for the
+   mute toggle so it reads as one of the corner icons instead of a separate
+   wide control competing with the top-right telemetry readout. */
+.corner-toggle-offset { right: 62px; }
 
 .settings-panel {
   position: fixed;

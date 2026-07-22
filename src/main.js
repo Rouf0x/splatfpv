@@ -33,19 +33,23 @@ cameras.applyFpvSettings(settingsStore.camera);
 
 const calWizard = initCalibrationWizard(input, settingsStore);
 
-// --- Quick-access HUD volume slider — sits next to the settings gear so
-// volume never needs a trip into the settings panel's Controls tab. Kept in
-// sync with the settings-panel slider in both directions: this one saves
-// straight to settingsStore, and onVolumeChange (fired by that slider too)
-// mirrors the value back here.
-const hudVolumeSlider = document.getElementById('hudVolumeSlider');
-hudVolumeSlider.value = settingsStore.controls.audioVolume;
-hudVolumeSlider.addEventListener('input', () => {
-  const v = parseFloat(hudVolumeSlider.value);
-  settingsStore.controls.audioVolume = v;
-  audio.setMasterVolume(v);
+// --- Quick-access mute toggle — sits next to the settings gear rather than
+// a full volume slider, which was wide enough to overlap the top-right
+// telemetry readout. Volume itself is still adjusted from Settings →
+// Controls; this only flips settingsStore.controls.muted, so unmuting
+// always restores whatever level was set there.
+const muteToggle = document.getElementById('muteToggle');
+function applyVolume() {
+  const muted = settingsStore.controls.muted;
+  audio.setMasterVolume(muted ? 0 : settingsStore.controls.audioVolume);
+  muteToggle.textContent = muted ? '🔇' : '🔊';
+}
+muteToggle.addEventListener('click', () => {
+  settingsStore.controls.muted = !settingsStore.controls.muted;
+  applyVolume();
+  settingsStore.save();
 });
-hudVolumeSlider.addEventListener('change', () => settingsStore.save());
+applyVolume();
 
 // --- In-game settings (gear icon) — Flight / Camera / Controls only -------
 const gameSettings = createSettingsUI(
@@ -57,7 +61,9 @@ const gameSettings = createSettingsUI(
     onWorldChange() { sceneManager.applySplatTransform(settingsStore.world); },
     onOpenWizard() { calWizard.open(); },
     onStickPreviewChange(visible) { hud.setStickPreviewVisible(visible); },
-    onVolumeChange(v) { audio.setMasterVolume(v); hudVolumeSlider.value = v; },
+    // Dragging the volume slider implicitly unmutes — matches most players'
+    // expectation that touching volume means "I want sound."
+    onVolumeChange() { settingsStore.controls.muted = false; applyVolume(); },
   }
 );
 
@@ -82,7 +88,7 @@ const menuSettings = createSettingsUI(
   settingsStore,
   {
     onOpenWizard() { calWizard.open(); },
-    onVolumeChange(v) { audio.setMasterVolume(v); hudVolumeSlider.value = v; },
+    onVolumeChange() { settingsStore.controls.muted = false; applyVolume(); },
   }
 );
 
@@ -116,7 +122,7 @@ const setupScreen = initSetupScreen(sceneManager, settingsStore, {
 
 function handleLaunchRequest() {
   audio.start(); // must happen inside a user-gesture handler (browser autoplay policy)
-  audio.setMasterVolume(settingsStore.controls.audioVolume);
+  applyVolume();
   const gp = settingsStore.gamepad.enabled ? input.readGamepad() : null;
   const calibrated = settingsStore.gamepad.channels.some((c) => c.action !== 'none');
   if (gp && !calibrated) {
@@ -138,7 +144,7 @@ function enterGame() {
   document.getElementById('hud').style.display = 'block';
   document.getElementById('settingsToggle').classList.remove('hidden');
   document.getElementById('backToMenuBtn').classList.remove('hidden');
-  hudVolumeSlider.parentElement.classList.remove('hidden');
+  muteToggle.classList.remove('hidden');
   flight.updateModeUI(hud);
 }
 
@@ -149,7 +155,7 @@ function backToMainMenu() {
   document.getElementById('hud').style.display = 'none';
   document.getElementById('settingsToggle').classList.add('hidden');
   document.getElementById('backToMenuBtn').classList.add('hidden');
-  hudVolumeSlider.parentElement.classList.add('hidden');
+  muteToggle.classList.add('hidden');
   sceneManager.unload();
   setupScreen.reset();
   // Reframe the orbit camera so the next scene loads into view instead of
