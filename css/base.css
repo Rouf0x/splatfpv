@@ -1,0 +1,191 @@
+:root {
+  /* Surface */
+  --bg: #0a0b0e;
+  --panel-bg: rgba(14, 16, 20, 0.90);
+  --panel-bg-solid: #14161b;
+  --panel-border: rgba(255, 255, 255, 0.10);
+  --panel-border-strong: rgba(255, 255, 255, 0.18);
+  --panel-hover: rgba(255, 255, 255, 0.05);
+
+  /* OSD telemetry — kept neutral, like a real flight-controller overlay */
+  --osd: #eef1f6;
+  --osd-dim: #7b8290;
+  --osd-faint: #454b56;
+
+  /* Interactive chrome accent — the one color reserved for things you click */
+  --accent: #ff9142;
+  --accent-strong: #ffb066;
+  --accent-dim: rgba(255, 145, 66, 0.14);
+  --accent-border: rgba(255, 145, 66, 0.4);
+
+  /* Secondary telemetry accent (gamepad live, horizon) */
+  --tele: #4fd2ff;
+  --tele-dim: rgba(79, 210, 255, 0.14);
+
+  /* Status semantics only — not used as decoration elsewhere */
+  --armed: #ff4d4d;
+  --safe: #34d399;
+  --warn: #ffc94d;
+
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --sans: "Space Grotesk", system-ui, -apple-system, sans-serif;
+  --radius: 12px;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+  font-family: var(--mono);
+  color: var(--osd);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#glcanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  outline: none;
+}
+
+.btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--osd);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s, color 0.15s;
+}
+
+.btn:hover { border-color: var(--panel-border-strong); background: rgba(255, 255, 255, 0.06); }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a0f05;
+  font-weight: 600;
+}
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+
+.btn.ghost { background: transparent; }
+
+.btn.subtle {
+  background: transparent;
+  border-color: transparent;
+  color: var(--osd-dim);
+  padding: 6px 10px;
+}
+.btn.subtle:hover { color: var(--osd); background: var(--panel-hover); }
+.btn.subtle.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--osd-dim);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-icon:hover { background: var(--panel-hover); color: var(--osd); }
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--osd-dim);
+  font-size: 11px;
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+.field label .val {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.field input[type="range"] {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--panel-border-strong);
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: pointer;
+}
+.field input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 6px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.4);
+  transition: background 0.1s;
+}
+.field input[type="range"]:hover::-webkit-slider-thumb { background: var(--accent-strong); }
+.field input[type="range"]::-moz-range-thumb {
+  width: 6px;
+  height: 16px;
+  border: none;
+  border-radius: 2px;
+  background: var(--accent);
+  cursor: pointer;
+}
+.field input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.field select {
+  width: 100%;
+  background: #0c0d10;
+  border: 1px solid var(--panel-border);
+  color: var(--osd);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field select:focus { border-color: var(--accent-border); }
+
+.field.checkbox-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--osd-dim);
+}
+.field.checkbox-row input {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.hidden { display: none !important; }

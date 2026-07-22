@@ -1,0 +1,7 @@
+.DS_Store
+Thumbs.db
+*.log
+.claude/settings.local.json
+
+# Personal settings exports (Settings → General → Export)
+splatfpv-settings-*.json
