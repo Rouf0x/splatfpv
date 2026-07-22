@@ -18,20 +18,25 @@ export class Hud {
     document.getElementById('camLabel').textContent = camView.toUpperCase();
   }
 
+  // Uses sticks.raw (pre-invert) rather than the top-level, possibly-inverted
+  // values — this is meant to read as "where is my thumb", so it shouldn't
+  // flip just because an invert setting was turned on to fix flight
+  // direction on a backwards-wired axis.
   updateStickPreview(sticks) {
-    const throttleY = (1 - 2 * sticks.throttle) * SP_RADIUS;
-    const yawX = sticks.yaw * SP_RADIUS;
+    const raw = sticks.raw;
+    const throttleY = (1 - 2 * raw.throttle) * SP_RADIUS;
+    const yawX = raw.yaw * SP_RADIUS;
     document.getElementById('spLeftDot').style.transform =
       `translate(calc(-50% + ${yawX}px), calc(-50% + ${throttleY}px))`;
     document.getElementById('spLeftReadout').textContent =
-      `T ${(sticks.throttle * 100).toFixed(0)}% · Y ${sticks.yaw.toFixed(2)}`;
+      `T ${(raw.throttle * 100).toFixed(0)}% · Y ${raw.yaw.toFixed(2)}`;
 
-    const rollX = sticks.roll * SP_RADIUS;
-    const pitchY = sticks.pitch * SP_RADIUS;
+    const rollX = raw.roll * SP_RADIUS;
+    const pitchY = raw.pitch * SP_RADIUS;
     document.getElementById('spRightDot').style.transform =
       `translate(calc(-50% + ${rollX}px), calc(-50% + ${pitchY}px))`;
     document.getElementById('spRightReadout').textContent =
-      `R ${sticks.roll.toFixed(2)} · P ${sticks.pitch.toFixed(2)}`;
+      `R ${raw.roll.toFixed(2)} · P ${raw.pitch.toFixed(2)}`;
   }
 
   update(state, sticks) {

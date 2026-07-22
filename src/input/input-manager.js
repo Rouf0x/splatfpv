@@ -107,8 +107,15 @@ export class InputManager {
   // dongle, HOTAS throttles, etc.) routinely reports axes in a different
   // order, with different polarity, and non-symmetric ranges (e.g. a
   // trigger-style throttle reporting 0..1 instead of -1..1).
+  //
+  // Each returned stick also carries a `.raw` counterpart — the same value
+  // before the invert flag is applied. Flight/audio use the (possibly
+  // inverted) top-level value since that's the actual command being sent;
+  // the HUD stick preview uses `.raw` instead, since a physical-position
+  // viewer showing your thumb moving the "wrong" way just because you told
+  // the sim your stick is wired backwards is more confusing than helpful.
   readGamepadSticks(gp, cfg) {
-    const out = { throttle: 0, yaw: 0, pitch: 0, roll: 0 };
+    const out = { throttle: 0, yaw: 0, pitch: 0, roll: 0, raw: { throttle: 0, yaw: 0, pitch: 0, roll: 0 } };
 
     cfg.channels.forEach((ch, i) => {
       if (ch.action === 'none') return;
@@ -117,11 +124,20 @@ export class InputManager {
 
       const normalized = normalizeAxis(raw, ch);
       let value = applyDeadzone(normalized, cfg.deadzone);
-      // Throttle is unipolar (0-100%) and must always be able to reach both
-      // ends of its range — unlike yaw/pitch/roll, a sensitivity multiplier
-      // here would make full-stick throttle permanently unreachable (e.g.
-      // 0.8 sensitivity caps it to 10%-90% no matter how well calibrated).
-      if (ch.action !== 'throttle') value *= cfg.sensitivity[ch.action];
+      // Sensitivity reshapes the response via a gamma curve rather than a
+      // plain multiply. A plain multiply would permanently cap the
+      // reachable range below full deflection for any sensitivity < 1 (0.8
+      // caps output at +/-0.8, i.e. can't get past 90%/10% no matter how
+      // well calibrated) — the same trap throttle is deliberately exempted
+      // from below. Raising to the 1/sensitivity power keeps |1| -> 1
+      // always (full stick still reaches full output) while still making
+      // sensitivity > 1 twitchier and < 1 gentler in between.
+      if (ch.action !== 'throttle') {
+        const sens = cfg.sensitivity[ch.action];
+        value = Math.sign(value) * Math.abs(value) ** (1 / sens);
+      }
+
+      const rawValue = clamp(value, -1, 1);
       if (cfg.invert[ch.action]) value = -value;
       value = clamp(value, -1, 1);
 
@@ -130,8 +146,10 @@ export class InputManager {
         // friction-held stick (min ~= center, idle at one end) and for a
         // spring-centered stick (min/max are the true -1..1 extremes).
         out.throttle = clamp((value + 1) / 2, 0, 1);
+        out.raw.throttle = clamp((rawValue + 1) / 2, 0, 1);
       } else {
         out[ch.action] = value;
+        out.raw[ch.action] = rawValue;
       }
     });
 
@@ -156,28 +174,30 @@ export class InputManager {
     if (this.keys.has('ArrowLeft')) roll -= 1;
     if (this.keys.has('ArrowRight')) roll += 1;
 
+    const raw = { throttle, yaw, pitch, roll };
     if (controls.invertPitch) pitch = -pitch;
     if (controls.invertRoll) roll = -roll;
     if (controls.invertYaw) yaw = -yaw;
 
-    return { throttle, yaw, pitch, roll };
+    return { throttle, yaw, pitch, roll, raw };
   }
 
   // Fixed on-screen touch layout (left stick = throttle/yaw, right stick =
   // pitch/roll — matches the THR/YAW and PITCH/ROLL labels in the HUD).
   // Independent of gamepad channel calibration since it's a virtual control
-  // with a known, fixed -1..1 range.
+  // with a known, fixed -1..1 range. No invert concept, so raw == sticks.
   readTouchSticks() {
     const lx = this.touch.left.x;
     const ly = this.touch.left.y;
     const rx = this.touch.right.x;
     const ry = this.touch.right.y;
-    return {
+    const sticks = {
       throttle: clamp((ly + 1) / 2, 0, 1),
       yaw: lx,
       roll: rx,
       pitch: ry,
     };
+    return { ...sticks, raw: { ...sticks } };
   }
 
   poll(state, dt) {
@@ -185,7 +205,7 @@ export class InputManager {
     const gpCfg = this.settingsStore.gamepad;
     const flight = this.settingsStore.flight;
 
-    let sticks = { throttle: state.throttleTarget, yaw: 0, pitch: 0, roll: 0 };
+    let sticks = { throttle: state.throttleTarget, yaw: 0, pitch: 0, roll: 0, raw: { throttle: state.throttleTarget, yaw: 0, pitch: 0, roll: 0 } };
     let source = 'keyboard';
     let gp = null;
 
@@ -216,6 +236,9 @@ export class InputManager {
     sticks.yaw = applyExpo(sticks.yaw, expo);
     sticks.pitch = applyExpo(sticks.pitch, expo);
     sticks.roll = applyExpo(sticks.roll, expo);
+    sticks.raw.yaw = applyExpo(sticks.raw.yaw, expo);
+    sticks.raw.pitch = applyExpo(sticks.raw.pitch, expo);
+    sticks.raw.roll = applyExpo(sticks.raw.roll, expo);
 
     return { sticks, source, gp };
   }

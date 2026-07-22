@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS = {
     camFov: 110,
     chaseDist: 2.8,
     chaseHeight: 0.4,
-    fisheye: true,
+    fisheye: false,
   },
   world: {
     groundEnabled: false,
