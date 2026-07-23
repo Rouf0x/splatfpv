@@ -85,6 +85,20 @@
   border-top: 1px solid var(--panel-border);
 }
 
+.badge-experimental {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warn);
+  border: 1px solid rgba(255, 201, 77, 0.4);
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
 .menu-play-btn {
   width: 100%;
   padding: 16px;

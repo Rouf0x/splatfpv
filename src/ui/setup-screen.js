@@ -1,9 +1,16 @@
 import { DEMO_SPLAT_URL } from '../config/defaults.js';
 import { slider, checkbox, colorPicker, debounce, bindRange, bindCheckbox, bindColor } from './field-controls.js';
+import { buildVoxelCollider } from '../physics/voxel-collider.js';
 
 // The scene/ground fields — rendered once into #sceneSetupFields, which
 // starts dimmed (nothing loaded yet) and lights up once a splat is loaded.
 const FIELDS_HTML = `
+  <h3 class="menu-section-label">Voxel colliders <span class="badge-experimental">Experimental</span></h3>
+  <p class="key-list" style="margin-top:0">Works best on higher quality splats with very little floaters.Turns the splat's point cloud into solid voxel cubes the drone can collide with — separate from ground collision below. Rebuilt from scratch each time you launch, so dense scans take a moment. Not supported for .lod-meta.json scenes.</p>
+  ${checkbox('Enable voxel colliders', 'world', 'voxelCollisionEnabled')}
+  <div data-role="voxelFields">
+    ${slider('Voxel size', 0.02, 1, 0.01, 'world', 'voxelSize')}
+  </div>
   <h3 class="menu-section-label">Sky</h3>
   ${colorPicker('Sky color', 'world', 'skyColor')}
   <h3 class="menu-section-label">Scene transform</h3>
@@ -66,6 +73,16 @@ export function initSetupScreen(sceneManager, settingsStore, callbacks) {
     onChange: () => { sceneManager.applyLod(settingsStore.world); settingsStore.save(); },
   });
 
+  const voxelFieldsEl = fieldsEl.querySelector('[data-role="voxelFields"]');
+  function updateVoxelVisibility() {
+    voxelFieldsEl.classList.toggle('field-disabled', !settingsStore.world.voxelCollisionEnabled);
+  }
+  bindCheckbox(fieldsEl, settingsStore, 'world', 'voxelCollisionEnabled', {
+    onChange: () => { settingsStore.save(); updateVoxelVisibility(); },
+  });
+  bindRange(fieldsEl, settingsStore, 'world', 'voxelSize', { fmt: (v) => v.toFixed(2) + ' m', onChange: () => saveDebounced() });
+  updateVoxelVisibility();
+
   function setSceneLoadedUI(loaded) {
     fieldsEl.classList.toggle('field-disabled', !loaded);
     launchBtn.disabled = !loaded;
@@ -74,7 +91,7 @@ export function initSetupScreen(sceneManager, settingsStore, callbacks) {
 
   const setStatus = (text) => {
     statusEl.textContent = text;
-    statusEl.classList.toggle('busy', /loading/i.test(text));
+    statusEl.classList.toggle('busy', /loading|building/i.test(text));
     statusEl.classList.toggle('error', /failed/i.test(text));
   };
 
@@ -127,7 +144,24 @@ export function initSetupScreen(sceneManager, settingsStore, callbacks) {
   launchBtn.addEventListener('click', () => {
     if (!sceneManager.entity) return;
     settingsStore.save();
-    callbacks.onLaunch?.();
+
+    if (!settingsStore.world.voxelCollisionEnabled) {
+      callbacks.onVoxelCollider?.(null);
+      callbacks.onLaunch?.();
+      return;
+    }
+
+    // Deferred a tick so "Building…" actually paints before the (synchronous,
+    // potentially slow-on-dense-scans) grid build blocks the main thread.
+    launchBtn.disabled = true;
+    setStatus('Building voxel colliders…');
+    setTimeout(() => {
+      const collider = buildVoxelCollider(sceneManager.entity, settingsStore.world.voxelSize);
+      callbacks.onVoxelCollider?.(collider);
+      setStatus(collider ? '' : "Voxel colliders aren't supported for this scene format — launching without them.");
+      launchBtn.disabled = false;
+      callbacks.onLaunch?.();
+    }, 0);
   });
 
   const qp = new URLSearchParams(window.location.search);

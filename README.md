@@ -40,7 +40,7 @@ Open via the **Settings** tile on the main menu, or the gear icon (top-left, nex
 - **Controls**: keyboard inversions and sensitivity
 - **Gamepad**: enable/disable, sensitivity, deadzone, inversions; controller calibration wizard is on the main menu
 
-**World** settings (sky color, ground collision, splat scale/position/rotation, LOD) live on the scene-setup screen instead, with a live preview behind the sidebar as you adjust them.
+**World** settings (sky color, ground collision, splat scale/position/rotation, LOD, experimental voxel colliders) live on the scene-setup screen instead, with a live preview behind the sidebar as you adjust them.
 
 Every change saves to `localStorage` immediately — there's no separate "apply" step, and nothing is lost if you close the panel.
 

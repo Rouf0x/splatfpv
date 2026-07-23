@@ -35,10 +35,16 @@ export const DEFAULT_SETTINGS = {
     // Shows through anywhere the splat itself doesn't cover — camera clear
     // color, effectively, but framed as "sky" since that's what it reads as
     // for an outdoor scan with open space above/around it.
-    skyColor: '#87ceeb',
+    skyColor: '#d1ebff',
     groundEnabled: false,
     groundHeight: 0,
     autoGround: true,
+    // Experimental — treats the splat's point cloud as solid voxel cubes for
+    // collision. The grid is (re)built from scratch on every launch, which
+    // costs real time on dense scans, and only the drone's exact position is
+    // tested against it rather than a swept volume.
+    voxelCollisionEnabled: true,
+    voxelSize: 0.1,
     splatScale: 1,
     splatPosX: 0,
     splatPosY: 0,

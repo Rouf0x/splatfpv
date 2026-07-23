@@ -119,6 +119,7 @@ const setupScreen = initSetupScreen(sceneManager, settingsStore, {
   },
   onLaunch: handleLaunchRequest,
   onSkyChange(hex) { cameras.setSky(hex); },
+  onVoxelCollider(collider) { physics.setVoxelCollider(collider); },
 });
 
 function handleLaunchRequest() {

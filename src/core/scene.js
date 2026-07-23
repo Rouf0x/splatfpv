@@ -4,6 +4,43 @@ import { isSplatFilename, convertSplatToPly } from '../utils/splat-to-ply.js';
 let splatEntity = null;
 let currentBlobUrl = null;
 
+// superspl.at share links (e.g. https://superspl.at/scene/<hash>) point at an
+// HTML viewer page, not a splat file. The page embeds the real asset at a
+// fixed CDN location we can construct directly from the scene hash, but the
+// filename depends on how the scene was published (plain "sog" vs LOD-chunked
+// "ssog"), so we probe candidates rather than assuming one.
+const SUPERSPLAT_CDN_BASE = 'https://d28zzqy0iyovbz.cloudfront.net';
+const SUPERSPLAT_CONTENT_CANDIDATES = ['lod-meta.json', 'meta.json', 'scene.compressed.ply'];
+
+function extractSuperSplatHash(url) {
+  let u;
+  try {
+    u = new URL(url, window.location.href);
+  } catch {
+    return null;
+  }
+  if (!/(^|\.)superspl\.at$/i.test(u.hostname)) return null;
+  const idParam = u.searchParams.get('id');
+  if (idParam) return idParam;
+  const match = u.pathname.match(/\/scene\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
+
+async function resolveSuperSplatUrl(url) {
+  const hash = extractSuperSplatHash(url);
+  if (!hash) return url;
+  for (const filename of SUPERSPLAT_CONTENT_CANDIDATES) {
+    const candidate = `${SUPERSPLAT_CDN_BASE}/${hash}/v1/${filename}`;
+    try {
+      const res = await fetch(candidate, { method: 'HEAD' });
+      if (res.ok) return candidate;
+    } catch {
+      // network/CORS error on this candidate - try the next one
+    }
+  }
+  throw new Error('Could not find a SuperSplat asset for this link');
+}
+
 export function createSceneManager(app) {
   let onReadyCallback = () => {};
 
@@ -81,11 +118,18 @@ export function createSceneManager(app) {
     loadAsset(currentBlobUrl, originalName.replace(/\.splat$/i, '.ply'), world, setStatus);
   }
 
-  function loadFromUrl(url, label, setStatus, world) {
+  async function loadFromUrl(url, label, setStatus, world) {
     setStatus(`Loading ${label || url}…`);
-    const filename = fileNameFromUrl(url);
+    let resolvedUrl;
+    try {
+      resolvedUrl = await resolveSuperSplatUrl(url);
+    } catch (err) {
+      setStatus(`Failed: ${err.message || err}`);
+      return;
+    }
+    const filename = fileNameFromUrl(resolvedUrl);
     if (isSplatFilename(filename)) {
-      fetch(url)
+      fetch(resolvedUrl)
         .then((res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.arrayBuffer();
@@ -94,7 +138,7 @@ export function createSceneManager(app) {
         .catch((err) => setStatus(`Failed: ${err.message || err}`));
       return;
     }
-    loadAsset(url, filename, world, setStatus);
+    loadAsset(resolvedUrl, filename, world, setStatus);
   }
 
   function loadFromFile(file, world, setStatus) {

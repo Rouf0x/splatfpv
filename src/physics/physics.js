@@ -25,6 +25,14 @@ export class PhysicsEngine {
   constructor(state, settingsStore) {
     this.state = state;
     this.settingsStore = settingsStore;
+    // Experimental (Setup screen → Voxel colliders). Built once at launch by
+    // main.js from the loaded splat's point cloud; null means no collider —
+    // the drone flies through geometry freely, same as today.
+    this.voxelCollider = null;
+  }
+
+  setVoxelCollider(collider) {
+    this.voxelCollider = collider;
   }
 
   step(dt, sticks, mode) {
@@ -137,12 +145,17 @@ export class PhysicsEngine {
     }
 
     // Integrate (simple Euler)
+    const prevX = s.pos.x, prevY = s.pos.y, prevZ = s.pos.z;
     s.vel.x += tmpAccel.x * dt;
     s.vel.y += tmpAccel.y * dt;
     s.vel.z += tmpAccel.z * dt;
     s.pos.x += s.vel.x * dt * flight.worldScale;
     s.pos.y += s.vel.y * dt * flight.worldScale;
     s.pos.z += s.vel.z * dt * flight.worldScale;
+
+    if (this.voxelCollider) {
+      this.resolveVoxelCollision(s, prevX, prevY, prevZ);
+    }
 
     // Ground collision — optional (Settings → World), off by default so
     // splats can be flown freely without an invisible floor. When enabled,
@@ -168,6 +181,32 @@ export class PhysicsEngine {
       }
     } else {
       s.onGround = false;
+    }
+  }
+
+  // Axis-separated sweep against the voxel grid: resolve X, then Y (against
+  // the already-resolved X), then Z, clamping back to the pre-substep
+  // position and zeroing velocity on whichever axis walked into an occupied
+  // cell. Doing axes one at a time (rather than testing the full new
+  // position at once) is what lets the craft slide along a voxel face
+  // instead of stopping dead the instant any component of a diagonal move
+  // clips a corner. Unlike ground collision, this never sets s.crashed —
+  // colliding with the scene just stops/deflects the craft, it doesn't end
+  // the flight.
+  resolveVoxelCollision(s, prevX, prevY, prevZ) {
+    const collider = this.voxelCollider;
+
+    if (collider.occupied(s.pos.x, prevY, prevZ)) {
+      s.pos.x = prevX;
+      s.vel.x = 0;
+    }
+    if (collider.occupied(s.pos.x, s.pos.y, prevZ)) {
+      s.pos.y = prevY;
+      s.vel.y = 0;
+    }
+    if (collider.occupied(s.pos.x, s.pos.y, s.pos.z)) {
+      s.pos.z = prevZ;
+      s.vel.z = 0;
     }
   }
 }
