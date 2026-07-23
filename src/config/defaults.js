@@ -96,7 +96,7 @@ export const RATE_PRESETS = {
   race:      { maxRoll: 680, maxPitch: 680, maxYaw: 320, rateExpo: 0.2, response: 22, angularDrag: 1.8 },
 };
 
-export const DEMO_SPLAT_URL = 'https://developer.playcanvas.com/assets/toy-cat.sog';
+export const DEMO_SPLAT_URL = 'https://files.catbox.moe/54l37k.sog';
 
 export const GRAVITY = -9.81;
 export const DRONE_MASS_KG = 0.65;
