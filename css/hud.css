@@ -205,11 +205,15 @@
 
 #hud.flying #previewBanner { display: none; }
 
-/* Touch controls */
+/* Touch controls — the container spans the full screen just to position its
+   two corner sticks, so it must stay click-through itself (pointer-events:
+   none) or it silently eats every tap elsewhere in the HUD (launch button,
+   reset/camera buttons, orbit-drag on the preview camera). Only the visible
+   stick circles opt back in. */
 #touchControls {
   position: absolute;
   inset: 0;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .touch-stick {
@@ -221,6 +225,7 @@
   background: rgba(0, 0, 0, 0.35);
   border: 1.5px solid var(--panel-border-strong);
   touch-action: none;
+  pointer-events: auto;
 }
 
 #stickLeft { left: 24px; }
@@ -260,3 +265,66 @@
 }
 
 #hud.no-stick-preview .stick-preview { display: none; }
+
+/* Desktop/touch hint text — keyboard instructions vs. tap targets. Hidden
+   by default; the coarse-pointer media query below flips which one shows. */
+.hint-touch { display: none; }
+
+.touch-launch-btn { display: none; }
+
+.touch-flight-actions {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  display: none;
+  gap: 14px;
+}
+
+.touch-action-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(14, 16, 20, 0.75);
+  border: 1px solid var(--panel-border);
+  color: var(--osd);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+.touch-action-btn:active { background: rgba(20, 22, 27, 0.9); border-color: var(--panel-border-strong); }
+
+@media (hover: none) and (pointer: coarse) {
+  .hint-desktop { display: none; }
+  .hint-touch { display: inline; }
+
+  .touch-launch-btn {
+    display: block;
+    position: relative;
+    margin: 12px auto 0;
+    padding: 14px 30px;
+    border-radius: 999px;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #1a0f05;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .touch-launch-btn:active { background: var(--accent-strong); }
+
+  #hud.flying .touch-flight-actions { display: flex; }
+}

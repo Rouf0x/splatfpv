@@ -93,7 +93,7 @@
     <div id="crosshair"><div class="dot"></div></div>
 
     <div class="osd-block osd-tl">
-      <div id="crashBanner" class="crash-banner" hidden>CRASH — press R to reset</div>
+      <div id="crashBanner" class="crash-banner" hidden>CRASH — <span class="hint-desktop">press R to reset</span><span class="hint-touch">tap ⟲ to reset</span></div>
     </div>
 
     <div class="osd-block osd-tr">
@@ -122,13 +122,22 @@
     </div>
 
     <div class="osd-block osd-br">
-      <div><span class="k">CAM</span> <span id="camLabel">FPV</span> <span class="k">[C]</span></div>
+      <div><span class="k">CAM</span> <span id="camLabel">FPV</span> <span class="k hint-desktop">[C]</span></div>
       <div><span class="k">HOVER</span> <span id="hoverThr">—</span></div>
     </div>
 
     <div id="previewBanner">
-      Drag to orbit · Right-drag / two-finger pan · Scroll to zoom<br>
-      Position the camera, then press <strong>SPACE</strong> to launch
+      <span class="hint-desktop">Drag to orbit · Right-drag / two-finger pan · Scroll to zoom<br>
+      Position the camera, then press <strong>SPACE</strong> to launch</span>
+      <span class="hint-touch">Drag to orbit · Pinch to zoom<br>
+      Position the camera, then tap <strong>Launch</strong> below</span>
+      <button id="touchLaunchBtn" class="touch-launch-btn" type="button">▶ Launch</button>
+    </div>
+
+    <div id="touchFlightActions" class="touch-flight-actions">
+      <button id="touchResetBtn" class="touch-action-btn" type="button" aria-label="Reset" title="Reset">⟲</button>
+      <button id="touchCamBtn" class="touch-action-btn" type="button" aria-label="Cycle camera" title="Cycle camera">⛶</button>
+      <button id="touchPreviewBtn" class="touch-action-btn" type="button" aria-label="Back to preview" title="Back to preview">⏸</button>
     </div>
 
     <div id="touchControls" hidden>

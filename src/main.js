@@ -201,6 +201,25 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+// --- Touch equivalents of the shortcuts above — same handlers, tapped
+// instead of keyed, so touch-only devices (no keyboard) can fly too. -------
+document.getElementById('touchLaunchBtn').addEventListener('click', () => {
+  flight.launch(cameras.previewCamera);
+  flight.updateModeUI(hud);
+});
+document.getElementById('touchResetBtn').addEventListener('click', () => {
+  flight.reset();
+  flight.updateModeUI(hud);
+});
+document.getElementById('touchCamBtn').addEventListener('click', () => {
+  flight.cycleCamera();
+  flight.updateModeUI(hud);
+});
+document.getElementById('touchPreviewBtn').addEventListener('click', () => {
+  flight.goToPreview();
+  flight.updateModeUI(hud);
+});
+
 // --- Sim loop ---------------------------------------------------------------
 app.on('update', (dt) => {
   const { sticks, gp } = input.poll(state, dt);
