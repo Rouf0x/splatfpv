@@ -1,4 +1,5 @@
 import { Entity } from './app.js';
+import { isSplatFilename, convertSplatToPly } from '../utils/splat-to-ply.js';
 
 let splatEntity = null;
 let currentBlobUrl = null;
@@ -54,9 +55,7 @@ export function createSceneManager(app) {
     }
   }
 
-  function loadFromUrl(url, label, setStatus, world) {
-    setStatus(`Loading ${label || url}…`);
-    const filename = fileNameFromUrl(url);
+  function loadAsset(url, filename, world, setStatus) {
     app.assets.loadFromUrlAndFilename(url, filename, 'gsplat', (err, asset) => {
       if (err) {
         setStatus(`Failed: ${err}`);
@@ -67,18 +66,48 @@ export function createSceneManager(app) {
     });
   }
 
+  // PlayCanvas has no native ".splat" parser, so convert it to an in-memory
+  // PLY (which it does support) and load that instead.
+  function loadConvertedSplat(buffer, originalName, world, setStatus) {
+    let plyBuffer;
+    try {
+      plyBuffer = convertSplatToPly(buffer);
+    } catch (err) {
+      setStatus(`Failed: ${err.message || err}`);
+      return;
+    }
+    revokeBlobUrl();
+    currentBlobUrl = URL.createObjectURL(new Blob([plyBuffer], { type: 'application/octet-stream' }));
+    loadAsset(currentBlobUrl, originalName.replace(/\.splat$/i, '.ply'), world, setStatus);
+  }
+
+  function loadFromUrl(url, label, setStatus, world) {
+    setStatus(`Loading ${label || url}…`);
+    const filename = fileNameFromUrl(url);
+    if (isSplatFilename(filename)) {
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.arrayBuffer();
+        })
+        .then((buffer) => loadConvertedSplat(buffer, filename, world, setStatus))
+        .catch((err) => setStatus(`Failed: ${err.message || err}`));
+      return;
+    }
+    loadAsset(url, filename, world, setStatus);
+  }
+
   function loadFromFile(file, world, setStatus) {
     setStatus(`Loading ${file.name}…`);
+    if (isSplatFilename(file.name)) {
+      file.arrayBuffer()
+        .then((buffer) => loadConvertedSplat(buffer, file.name, world, setStatus))
+        .catch((err) => setStatus(`Failed: ${err.message || err}`));
+      return;
+    }
     revokeBlobUrl();
     currentBlobUrl = URL.createObjectURL(file);
-    app.assets.loadFromUrlAndFilename(currentBlobUrl, file.name, 'gsplat', (err, asset) => {
-      if (err) {
-        setStatus(`Failed: ${err}`);
-        return;
-      }
-      setStatus('');
-      placeSplat(asset, world);
-    });
+    loadAsset(currentBlobUrl, file.name, world, setStatus);
   }
 
   function unload() {
