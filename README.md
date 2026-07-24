@@ -3,6 +3,7 @@
 **Live demo: [roufox.dev/splatfpv](https://roufox.dev/splatfpv)**
 
 Browser-based FPV drone simulator for flying through 3D Gaussian Splat scenes.
+https://github.com/user-attachments/assets/546ebd62-1f45-47ac-86cc-038bf4279752
 
 ## Quick start
 
