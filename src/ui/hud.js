@@ -32,7 +32,10 @@ export class Hud {
       `T ${(raw.throttle * 100).toFixed(0)}% · Y ${raw.yaw.toFixed(2)}`;
 
     const rollX = raw.roll * SP_RADIUS;
-    const pitchY = raw.pitch * SP_RADIUS;
+    // Pushing pitch forward is a negative stick value but should read as
+    // "up" in the preview (mirrors throttle's up = more/forward framing),
+    // so it's negated here — same raw value, just an on-screen-only flip.
+    const pitchY = -raw.pitch * SP_RADIUS;
     document.getElementById('spRightDot').style.transform =
       `translate(calc(-50% + ${rollX}px), calc(-50% + ${pitchY}px))`;
     document.getElementById('spRightReadout').textContent =

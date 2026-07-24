@@ -260,15 +260,15 @@
   margin-top: 14px;
 }
 
-.demo-link {
+.demo-btn {
   display: block;
   width: 100%;
-  margin-top: 10px;
-  text-align: center;
+  padding: 14px;
+  font-size: 12px;
 }
 
 .demo-credit {
-  margin: 4px 0 0;
+  margin: 8px 0 0;
   font-size: 10px;
   opacity: 0.6;
   text-align: center;
@@ -276,6 +276,25 @@
 
 .demo-credit a {
   color: inherit;
+}
+
+.setup-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 14px;
+  color: var(--osd-faint);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.setup-divider::before,
+.setup-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--panel-border);
 }
 
 .load-status {

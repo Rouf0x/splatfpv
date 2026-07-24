@@ -53,7 +53,7 @@ export function initSetupScreen(sceneManager, settingsStore, callbacks) {
   });
   bindRange(fieldsEl, settingsStore, 'world', 'splatScale', { onChange: () => { applyTransform(); saveDebounced(); } });
   bindRange(fieldsEl, settingsStore, 'world', 'splatPosX', { onChange: () => { applyTransform(); saveDebounced(); } });
-  bindRange(fieldsEl, settingsStore, 'world', 'splatPosY', { onChange: () => { applyTransform(); saveDebounced(); } });
+  const resyncSplatPosY = bindRange(fieldsEl, settingsStore, 'world', 'splatPosY', { onChange: () => { applyTransform(); saveDebounced(); } });
   bindRange(fieldsEl, settingsStore, 'world', 'splatPosZ', { onChange: () => { applyTransform(); saveDebounced(); } });
   bindRange(fieldsEl, settingsStore, 'world', 'splatRotX', { fmt: (v) => v.toFixed(0) + '°', onChange: () => { applyTransform(); saveDebounced(); } });
   bindRange(fieldsEl, settingsStore, 'world', 'splatRotY', { fmt: (v) => v.toFixed(0) + '°', onChange: () => { applyTransform(); saveDebounced(); } });
@@ -130,6 +130,12 @@ export function initSetupScreen(sceneManager, settingsStore, callbacks) {
     if (e.key === 'Enter') document.getElementById('loadUrlBtn').click();
   });
   document.getElementById('demoBtn').addEventListener('click', () => {
+    // The demo scene's floor sits well above world origin — drop the splat
+    // down so the default spawn height (shared with every other scene)
+    // opens above ground instead of buried in it.
+    settingsStore.world.splatPosY = -10;
+    resyncSplatPosY();
+    saveDebounced();
     sceneManager.loadFromUrl(DEMO_SPLAT_URL, 'demo', setStatus, settingsStore.world);
   });
 
