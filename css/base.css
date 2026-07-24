@@ -1,8 +1,13 @@
 :root {
-  /* Surface */
-  --bg: #0a0b0e;
-  --panel-bg: rgba(14, 16, 20, 0.90);
-  --panel-bg-solid: #14161b;
+  /* Surface — matches the SplatFPV brand assets' nominal dark background */
+  --bg: #19110b;
+  /* Chrome's H.264 decode renders that same #19110b background a few
+     units darker (measured rgb(20,17,12) vs the nominal rgb(25,17,11)) —
+     use this wherever a brand video sits directly against the page so
+     there's no visible seam around the clip. */
+  --bg-video: #14110c;
+  --panel-bg: rgba(24, 17, 12, 0.90);
+  --panel-bg-solid: #221a13;
   --panel-border: rgba(255, 255, 255, 0.10);
   --panel-border-strong: rgba(255, 255, 255, 0.18);
   --panel-hover: rgba(255, 255, 255, 0.05);
@@ -162,7 +167,7 @@ html, body {
 
 .field select {
   width: 100%;
-  background: #0c0d10;
+  background: #100b07;
   border: 1px solid var(--panel-border);
   color: var(--osd);
   font-family: var(--mono);
@@ -209,3 +214,12 @@ html, body {
 .field.color-row input[type="color"]::-moz-color-swatch { border: none; border-radius: 4px; }
 
 .hidden { display: none !important; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}

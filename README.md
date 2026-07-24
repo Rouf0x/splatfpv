@@ -1,4 +1,6 @@
-# FPV Splat Sim
+<p align="center">
+  <img src="assets/SplatFPVLoadLight.svg" alt="SplatFPV" width="320">
+</p>
 
 **Live demo: [roufox.dev/splatfpv](https://roufox.dev/splatfpv)**
 

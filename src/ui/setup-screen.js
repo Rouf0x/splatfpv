@@ -41,6 +41,26 @@ export function initSetupScreen(sceneManager, settingsStore, callbacks) {
   const fieldsEl = document.getElementById('sceneSetupFields');
   const launchBtn = document.getElementById('launchBtn');
   const backBtn = document.getElementById('setupBackBtn');
+  const loadOverlay = document.getElementById('loadOverlay');
+  const loadOverlayVideo = loadOverlay.querySelector('.load-overlay-video');
+  let overlayHideTimer = null;
+
+  const showLoadOverlay = () => {
+    clearTimeout(overlayHideTimer);
+    loadOverlay.hidden = false;
+    loadOverlay.classList.remove('fade-out');
+    loadOverlayVideo.currentTime = 0;
+    loadOverlayVideo.play().catch(() => {});
+  };
+  const hideLoadOverlay = () => {
+    if (loadOverlay.hidden) return;
+    clearTimeout(overlayHideTimer);
+    loadOverlay.classList.add('fade-out');
+    overlayHideTimer = setTimeout(() => {
+      loadOverlay.hidden = true;
+      loadOverlayVideo.pause();
+    }, 350);
+  };
 
   fieldsEl.innerHTML = FIELDS_HTML;
 
@@ -93,6 +113,10 @@ export function initSetupScreen(sceneManager, settingsStore, callbacks) {
     statusEl.textContent = text;
     statusEl.classList.toggle('busy', /loading|building/i.test(text));
     statusEl.classList.toggle('error', /failed/i.test(text));
+    // Only the initial scene fetch/parse gets the full-screen takeover —
+    // the (usually much shorter) voxel-collider build stays inline.
+    if (/^loading/i.test(text)) showLoadOverlay();
+    else hideLoadOverlay();
   };
 
   sceneManager.onReady = () => setSceneLoadedUI(true);
